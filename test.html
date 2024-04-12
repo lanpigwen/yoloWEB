@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Recorder</title>
+</head>
+<body>
+    <button id="startButton">Start Recording</button>
+    <button id="stopButton" disabled>Stop Recording</button>
+    <video id="videoElement" autoplay></video>
+    <audio id="audioElement" controls></audio>
+
+    <script>
+        let videoStream;
+        let audioStream;
+        let mediaRecorder;
+        const audioChunks = [];
+        const videoChunks = [];
+
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+
+        startButton.addEventListener('click', async () => {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            const videoElement = document.getElementById('videoElement');
+            videoElement.srcObject = videoStream;
+
+            mediaRecorder = new MediaRecorder(audioStream);
+
+            mediaRecorder.addEventListener('dataavailable', event => {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener('stop', async () => {
+                const blob = new Blob(chunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('audio', blob, 'audio.wav');
+
+                await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+            });
+
+            mediaRecorder.start();
+
+            startButton.disabled = true;
+            stopButton.disabled = false;
+        });
+
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            videoStream.getTracks().forEach(track => track.stop());
+            audioStream.getTracks().forEach(track => track.stop());
+
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        });
+    </script>
+</body>
+</html>

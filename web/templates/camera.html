@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera Stream with Mirror Effect</title>
+</head>
+<body>
+<h1>Camera Stream with Mirror Effect</h1>
+<video id="videoElement" width="640" height="480" autoplay></video>
+<canvas id="canvasElement" width="640" height="480"></canvas>
+<div id="result"></div>
+
+<script>
+// 获取视频流
+const video = document.getElementById("videoElement");
+
+if (navigator.mediaDevices.getUserMedia) {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function (stream) {
+      video.srcObject = stream;
+    })
+    .catch(function (error) {
+      console.error("Error accessing the camera: ", error);
+    });
+}
+
+// 获取canvas元素
+const canvas = document.getElementById("canvasElement");
+const context = canvas.getContext("2d");
+
+// 监听视频流帧
+video.addEventListener("play", function () {
+  // 在视频流上定时绘制
+  setInterval(function () {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 镜像处理
+    // context.save();
+    // context.scale(-1, 1);
+    // context.translate(-canvas.width, 0);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // context.restore();
+
+    // 将帧数据转换为base64编码的图像数据
+    const imageData = canvas.toDataURL("image/jpeg");
+
+    // 发送数据到服务器
+    sendData(imageData);
+  }, 33); // 每秒发送一次帧
+});
+
+// 发送数据到服务器
+function sendData(imageData) {
+  fetch("/process_frame", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ image_data: imageData })
+  })
+  .then(response => response.text())
+  .then(data => {
+    // 显示服务器处理后的图像
+    const processedImage = document.createElement('img');
+    processedImage.src = 'data:image/jpeg;base64,' + data;
+    document.getElementById("result").innerHTML = ''; // 清除之前的结果
+    document.getElementById("result").appendChild(processedImage);
+  })
+  .catch(error => {
+    console.error("Error sending data to server: ", error);
+  });
+}
+</script>
+</body>
+</html>

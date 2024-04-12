@@ -1,2 +1,0 @@
-# ball-rim-cv
-# yoloWEB

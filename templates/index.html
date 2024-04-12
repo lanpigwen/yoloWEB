@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Recorder</title>
+</head>
+<body>
+    <button id="startButton">Start Recording</button>
+    <button id="stopButton" disabled>Stop Recording</button>
+    <button id="jumpFrame">jumpFrame</button>
+    <div id="jumptext"></div>
+    <video id="videoElement" autoplay></video>
+    <!-- <audio id="audioElement" controls></audio> -->
+    <canvas id="resultCanvas" width="640" height="480" ></canvas>
+
+
+    <script>
+        let videoStream;
+        let audioStream;
+        let audio_mediaRecorder;
+        // let vidio_mediaRecorder;
+        let dingshi;
+        let jump=true;
+        let jpcount=0;
+        let audioChunks = [];
+
+
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const resultCanvas = document.getElementById("resultCanvas");
+        const resultContext = resultCanvas.getContext("2d");
+        const video = document.getElementById("videoElement");
+        const jumpFrame = document.getElementById("jumpFrame");
+        const jumptext=document.getElementById("jumptext");
+
+        startButton.addEventListener('click', async () => {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            const videoElement = document.getElementById('videoElement');
+            videoElement.srcObject = videoStream;
+
+            audio_mediaRecorder = new MediaRecorder(audioStream);
+            audio_mediaRecorder.addEventListener('dataavailable', event => {
+                audioChunks.push(event.data);
+            });
+            audio_mediaRecorder.addEventListener('stop', async () => {
+                const blob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('audio', blob, 'audio.wav');
+                await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                //一定要清空！！！
+                audioChunks=[];
+            });
+
+            audio_mediaRecorder.start();
+
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            dingshi = setInterval(function () {
+            const imageData = captureFrame(video);
+            sendData(imageData);
+            }, 30); // 每30ms发送一次帧
+
+        });
+
+        stopButton.addEventListener('click', () => {
+            audio_mediaRecorder.stop();
+            clearInterval(dingshi);
+            videoStream.getTracks().forEach(track => track.stop());
+            audioStream.getTracks().forEach(track => track.stop());
+
+            startButton.disabled = false;
+            stopButton.disabled = true;
+
+        });
+
+
+        jumpFrame.addEventListener("click", () => {
+            jump=!jump;
+            jumptext.innerText=jump;
+
+        });   
+        // 获取视频帧并转换为 base64 编码的图像数据
+        function captureFrame(video) {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL("image/jpeg");
+        }
+
+      // 发送数据到服务器
+        function sendData(imageData) {
+        if(jump){
+            jpcount++;
+        }
+        else{
+            jpcount=1;
+        }
+        fetch("/process_frame", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ image_data: imageData ,jumpORnot:jpcount%2}),
+        })
+          .then((response) => response.text())
+          .then((data) => {
+                // 渲染服务器处理后的图像到 canvas 上
+                const img = new Image();
+                img.onload = function() {
+                    // 清除之前的渲染
+                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    // 将图像渲染到 canvas 上
+                    resultContext.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
+                };
+                img.src = "data:image/jpeg;base64," + data;
+          })
+          .catch((error) => {
+            console.error("Error sending data to server: ", error);
+          });
+      }
+
+    </script>
+</body>
+</html>
