@@ -123,23 +123,59 @@ def draw_rim(frame,rim,clsNames):
         x1, y1, x2, y2, conf, label_i = d.tolist()
         x1, y1, x2, y2, conf, label_i=int(x1), int(y1), int(x2), int(y2),round(conf,2), int(label_i)
         label = clsNames[label_i]
-        textPUT=f'{label} {conf}'
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 100, 255), 3)  
-        cv2.putText(frame, textPUT, (x1, max(2, y1 - 15)), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
+        text = f'{label} {conf}'
+        rec_color=(0, 100, 255)
+        text_color=(255,255,255)
+        recsize=1
+        tsize1=0.5
+        tsize2=1
+        # 获取文本的尺寸
+        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, tsize1, tsize2)
+        text_width, text_height = text_size
+
+        # 计算调整后的文本大小，使其适应矩形宽度
+        while text_width > (x2 - x1) and tsize1>0.5:
+            tsize1 -= 0.1  # 减小文本大小
+            text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, tsize1, tsize2)
+            text_width, text_height = text_size
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), rec_color, recsize)  
+
+        cv2.rectangle(frame, (x1, int(y1-text_height)),(int(x1+text_width), y1), rec_color, -1)  
+        cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, tsize1, text_color, tsize2)
+
     return frame
 
-def draw_ball(frame,ball,clsNames,tsize1=2,tsize2=2,recsize=3,rec_color=(0,100,255),text_color=(255,255,255),show_rec=True,show_text=True):
+
+
+def draw_ball(frame, ball, clsNames, tsize1=1, tsize2=1, recsize=1, rec_color=(0, 100, 255), text_color=(255, 255, 255), show_rec=True, show_text=True):
     if ball is None:
         return frame
-    for d_i,d in enumerate([i for i in ball if i is not None]):
+    
+    for d_i, d in enumerate([i for i in ball if i is not None]):
         x1, y1, x2, y2, conf, label_i = d.tolist()
-        x1, y1, x2, y2, conf, label_i=int(x1), int(y1), int(x2), int(y2),round(conf,2), int(label_i)
+        x1, y1, x2, y2, conf, label_i = int(x1), int(y1), int(x2), int(y2), round(conf, 2), int(label_i)
         label = clsNames[label_i]
-        textPUT=f'{label} {conf}'
+        text = f'{label} {conf}'
+
+        # 获取文本的尺寸
+        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, tsize1, tsize2)
+        text_width, text_height = text_size
+
+        # 计算调整后的文本大小，使其适应矩形宽度
+        while text_width > (x2 - x1) and tsize1>0.5:
+            tsize1 -= 0.1  # 减小文本大小
+            text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, tsize1, tsize2)
+            text_width, text_height = text_size
+        # 绘制矩形
         if show_rec:
             cv2.rectangle(frame, (x1, y1), (x2, y2), rec_color, recsize)  
+
+        # 绘制文本
         if show_text:
-            cv2.putText(frame, textPUT, (x1, max(2, y1 - 15)), cv2.FONT_HERSHEY_SIMPLEX, tsize1,text_color, tsize2)
+            cv2.rectangle(frame, (x1, int(y1-text_height)),(int(x1+text_width), y1), rec_color, -1)  
+            cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, tsize1, text_color, tsize2)
+
     return frame
 
 def get_cls_idx_tensors(results,cls_idx=0):
@@ -368,16 +404,26 @@ def judge_shoot(preBallStack,frame,ball,rim,wait_frame):
         # except:
         #     print(fit_x)
         #     pass
+        alpha=0.5
         if wait_frame==0 and balls_in_pre[-1][1]>rim[1] and fit_x>rim[0] and fit_x<rim[2] and b2b_distance(rim,balls_in_pre[0])<4*abs(balls_in_pre[0][0]-balls_in_pre[0][2]) and balls_in_pre[0][1]<=balls_in_pre[-1][1]:
             print('!!!!!!!!!!!进球！！！！！！！！！')
-            cv2.putText(frame, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
-            cv2.circle(frame,(int(fit_x),int(c_y)),4,(0,0,255),4)
+            
+            overlay = frame.copy()
+            cv2.putText(overlay, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+            cv2.circle(overlay,(int(fit_x),int(c_y)),4,(0,0,255),4)
+            cv2.addWeighted( frame, 1 - alpha,overlay, alpha, 0, frame)
+            # cv2.putText(frame, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+            # cv2.circle(frame,(int(fit_x),int(c_y)),4,(0,0,255),4)
             wait_frame=30
             return True,frame,wait_frame
         else:
             wait_frame-=1
             if(wait_frame>5):
-                cv2.putText(frame, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+                # cv2.putText(frame, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+                overlay = frame.copy()
+                cv2.putText(overlay, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+                cv2.circle(overlay,(int(fit_x),int(c_y)),4,(0,0,255),4)
+                cv2.addWeighted( frame, 1 - alpha,overlay, alpha, 0, frame)
             return False,frame,max(0,wait_frame)
 
 def testfun(model,video,size=640,confidence=0.10):

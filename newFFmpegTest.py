@@ -165,14 +165,13 @@ def save_video(save_queue,video_file,out_video_file,encoder,preset,video_size,fp
                 # '-i', video_file,
                 # '-i', 'audio=麦克风阵列 (英特尔® 智音技术)',
                 '-map', '0:v',  # 明确指定第一个输入的视频流
-                # '-map', '1:a', 
+                '-map', '1:a', 
                 '-c:v', encoder,  # 使用 libx264 编码器
-                # '-c:a', 'copy',  # 复制原始音频流
+                '-c:a', 'copy',  # 复制原始音频流
             ]
-
-    if get_bitrate:
-        command2.extend(['-b:v', f'{bitrate}k'])
-    command2.extend(['-preset', preset, out_video_file])  
+        if get_bitrate:
+            command2.extend(['-b:v', f'{bitrate}k'])
+        command2.extend(['-preset', preset, out_video_file])  
     pipe2 = sp.Popen(command2, stdin=sp.PIPE)
 
     while True:
@@ -244,17 +243,17 @@ if __name__ == '__main__':
     video_file=r"C:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-8.mp4"
     # video_file=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-2.mp4"
     # video_file=r"D:\NBA-DATASETS\CunBA-replay\CunBA-replay-8.mp4"
-    video_file="https://v3-web.douyinvod.com/ad247f653d54a50c77583451b8972e3c/661699cf/video/tos/cn/tos-cn-ve-15c001-alinc2/og9FSAsMAK5oQgZjwnDeDqWvQBFbMZc8FgnfAs/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=830&bt=830&cs=0&ds=6&ft=LjhJEL998xztuo0mo0P5fQhlpPiXEkUWxVJEUA-jpbPD-Ipz&mime_type=video_mp4&qs=0&rc=aTRkMzw4PGllZmU3PDM0OkBpMztyMzg6ZmU6aDMzNGkzM0A1Ml8wY2M1X2AxLWJeLTM0YSNgamhfcjQwaXNgLS1kLTBzcw%3D%3D&btag=e00028000&cquery=101n_100B_100x_100z_100o&dy_q=1712753472&feature_id=f0150a16a324336cda5d6dd0b69ed299&l=2024041020511257482ACBCA1CCB0C5FE9"
+    # video_file="https://v3-web.douyinvod.com/ad247f653d54a50c77583451b8972e3c/661699cf/video/tos/cn/tos-cn-ve-15c001-alinc2/og9FSAsMAK5oQgZjwnDeDqWvQBFbMZc8FgnfAs/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=830&bt=830&cs=0&ds=6&ft=LjhJEL998xztuo0mo0P5fQhlpPiXEkUWxVJEUA-jpbPD-Ipz&mime_type=video_mp4&qs=0&rc=aTRkMzw4PGllZmU3PDM0OkBpMztyMzg6ZmU6aDMzNGkzM0A1Ml8wY2M1X2AxLWJeLTM0YSNgamhfcjQwaXNgLS1kLTBzcw%3D%3D&btag=e00028000&cquery=101n_100B_100x_100z_100o&dy_q=1712753472&feature_id=f0150a16a324336cda5d6dd0b69ed299&l=2024041020511257482ACBCA1CCB0C5FE9"
     model = YOLO('pts/best-ball-rim-4.engine')
     # model = YOLO('pts/best-ball-rim-n-600s.engine')
     outfile=''.join(os.path.basename(video_file).split('.')[:-1])+'-predict.'+'mp4'
     outfile=os.path.join('./results',outfile)
-
+    # print(outfile)
     mainThreads(video_file,model,out_video_file=outfile,
-                show_height=720,
-                out_height=720,
+                show_height=640,
+                out_height=640,
                 bitrate_k=2,
-                encoder='libx264',
+                encoder='mpeg4',
                 preset='ultrafast',
                 model_predict=True,
                 jump_frame=0,
@@ -265,3 +264,4 @@ if __name__ == '__main__':
                 )
     t2 = time.time()
     # print(f'耗时{round(t2 - t0,3)}s')
+    print(outfile)

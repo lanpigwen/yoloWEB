@@ -3,61 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Recorder</title>
+    <title>Extract Audio from MP4</title>
 </head>
 <body>
-    <button id="startButton">Start Recording</button>
+    <video id="videoElement" controls></video>
+    <button id="recordButton">Record Audio</button>
     <button id="stopButton" disabled>Stop Recording</button>
-    <video id="videoElement" autoplay></video>
-    <audio id="audioElement" controls></audio>
+    <button id="downloadButton" disabled>Download Audio</button>
 
     <script>
-        let videoStream;
-        let audioStream;
-        let mediaRecorder;
-        const audioChunks = [];
-        const videoChunks = [];
-
-        const startButton = document.getElementById('startButton');
+        const videoElement = document.getElementById('videoElement');
+        const recordButton = document.getElementById('recordButton');
         const stopButton = document.getElementById('stopButton');
+        const downloadButton = document.getElementById('downloadButton');
+        let mediaRecorder;
+        let chunks = [];
 
-        startButton.addEventListener('click', async () => {
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+            .then((stream) => {
+                videoElement.srcObject = stream;
+                mediaRecorder = new MediaRecorder(stream);
 
-            const videoElement = document.getElementById('videoElement');
-            videoElement.srcObject = videoStream;
+                mediaRecorder.ondataavailable = (e) => {
+                    chunks.push(e.data);
+                };
 
-            mediaRecorder = new MediaRecorder(audioStream);
-
-            mediaRecorder.addEventListener('dataavailable', event => {
-                audioChunks.push(event.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const link = document.createElement('a');
+                    link.href = audioUrl;
+                    link.download = 'audio.wav';
+                    document.body.appendChild(link);
+                    link.click();
+                    chunks = [];
+                };
+            })
+            .catch((err) => {
+                console.error('Error accessing media devices:', err);
             });
 
-            mediaRecorder.addEventListener('stop', async () => {
-                const blob = new Blob(chunks, { type: 'audio/wav' });
-                const formData = new FormData();
-                formData.append('audio', blob, 'audio.wav');
-
-                await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-            });
-
+        recordButton.addEventListener('click', () => {
             mediaRecorder.start();
-
-            startButton.disabled = true;
+            recordButton.disabled = true;
             stopButton.disabled = false;
         });
 
         stopButton.addEventListener('click', () => {
             mediaRecorder.stop();
-            videoStream.getTracks().forEach(track => track.stop());
-            audioStream.getTracks().forEach(track => track.stop());
-
-            startButton.disabled = false;
+            recordButton.disabled = false;
             stopButton.disabled = true;
+            downloadButton.disabled = false;
         });
     </script>
 </body>
