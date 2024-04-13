@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Recorder</title>
+    <!-- <script src="static/worker.js"></script> -->
 </head>
 <body>
     <button id="startButton">Start Recording</button>
@@ -34,6 +35,10 @@
         let height;
         let resetCanvasSize=1;
         let all_frame=[];
+        let frameCount=0;
+        let originTime=Date.now();
+        let lastFrame=Date.now();
+        let ct1,ct2,ct3;
 
 
         const startButton = document.getElementById('startButton');
@@ -47,19 +52,16 @@
         const jumptext=document.getElementById("jumptext");
 
         let fileInput = document.getElementById('fileInput');
+
         startButtonFile.addEventListener('click',async () =>{
+            ct1=0,ct2=0,ct3=0;
+            capCost=0;
+            frameCount=0;
             resetCanvasSize=1;
             let file = fileInput.files[0];
             let videoURL = URL.createObjectURL(file);
             video.src = videoURL;
-
-            dingshi = setInterval(function () {
-                const {imageData,imageWidth,imageHeight} = captureFrame(video);
-                // all_frame.push(imageData);
-                sendData(imageData,imageWidth,imageHeight,false);
-            }, 30); // 每30ms发送一次帧
-
-
+            
             const formData = new FormData();
             formData.append('mp4File', file);
 
@@ -68,18 +70,10 @@
                     method: 'POST',
                     body: formData
                 });
-                // if (response.ok) {
-                //     alert('File uploaded successfully!');
-                // } else {
-                //     alert('Failed to upload file.');
-                // }
             } catch (error) {
                 console.error('Error uploading file:', error);
                 alert('Error uploading file.');
             }
-
-
-
             startButtonFile.disabled = true;
             stopButtonFile.disabled = false;
         })
@@ -98,8 +92,45 @@
                 });
                 video.pause();
         })
+        function EveryFrame(){
+            let ct0=Date.now();
+            while(ct0-lastFrame<33){
+                ct0=Date.now();
+            }
+            console.log('frame gap',ct1,"cap",ct2,"send",ct3);
+            ct1=ct0-lastFrame;
+            // console.log('frame gap',ct1-lastFrame)
+            lastFrame=Date.now();
+            const {imageData,imageWidth,imageHeight} = captureFrame(video);
+            ct2=Date.now()-lastFrame;
+            temp=Date.now();
+            // all_frame.push(imageData);
+            sendData(imageData,imageWidth,imageHeight,false);
+            ct3=Date.now()-temp;
+            
+            dingshi=setTimeout(EveryFrame,0);
+        }
+
+        video.addEventListener('play',() =>{
+            originTime=Date.now();
+            // const {imageData,imageWidth,imageHeight} = captureFrame(video); 
+            // sendData(imageData,imageWidth,imageHeight,false);
+            EveryFrame();
+            // dingshi = setInterval(function () {
+            //     let ct1=Date.now();
+            //     console.log('frame gap',ct1-lastFrame)
+            //     lastFrame=Date.now();
+            //     const {imageData,imageWidth,imageHeight} = captureFrame(video);
+            //     // all_frame.push(imageData);
+            //     sendData(imageData,imageWidth,imageHeight,false);
+            // }, 1); // 每30ms发送一次帧
+        })
+
         video.addEventListener('ended', async () => {
-            clearInterval(dingshi); // 停止发送帧数据
+
+            console.log('all frame',frameCount,Date.now()-originTime);
+            // clearInterval(dingshi); // 停止发送帧数据
+            clearTimeout(dingshi);
             startButtonFile.disabled = false; // 启用开始录制按钮
             stopButtonFile.disabled = true; // 禁用停止录制按钮
             const formData = new FormData();
@@ -113,6 +144,7 @@
                 });
             // URL.revokeObjectURL(video.src);
         });
+
         startButton.addEventListener('click', async () => {
             resetCanvasSize=1;
             videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -169,6 +201,7 @@
         });   
         // 获取视频帧并转换为 base64 编码的图像数据
         function captureFrame(video) {
+            frameCount++;
             const canvas = document.createElement("canvas");
             const maxWidth = 1080;
             const maxHeight = 1080;
@@ -201,13 +234,14 @@
             // console.log(width,height);
             const context = canvas.getContext("2d");
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            let data=canvas.toDataURL("image/jpeg");
             return {
-                imageData:canvas.toDataURL("image/jpeg"),
+                imageData:data,
                 imageWidth:width,
                 imageHeight:height
             }
         }
-
       // 发送数据到服务器
         function sendData(imageData,imageWidth,imageHeight,flipFrame) {
         if(jump){
@@ -231,6 +265,11 @@
         })
           .then((response) => response.text())
           .then((data) => {
+            let t1=Date.now();
+            if(resultCanvas.width==0 || resultCanvas.height==0){
+                resultCanvas.width=video.videoWidth;
+                resultCanvas.height=video.videoHeight;
+            }
                 // 渲染服务器处理后的图像到 canvas 上
                 const img = new Image();
                 img.onload = function() {
@@ -241,9 +280,10 @@
                     // console.log(resultCanvas.width, resultCanvas.height);
                 };
                 img.src = "data:image/jpeg;base64," + data;
-          })
+            })
           .catch((error) => {
             console.error("Error sending data to server: ", error);
+            // alert("An error occurred while processing the frame. Please try again later.");
           });
       }
 

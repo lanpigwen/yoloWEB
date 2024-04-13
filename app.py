@@ -20,6 +20,15 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编解码器
 MAX_QUEUE_LENGTH = 3  # 假设队列长度为5
 frame_queue = deque(maxlen=MAX_QUEUE_LENGTH)
 all_frame=[]
+
+# 读取错误图片并转换为OpenCV格式
+error_image = cv2.imread('test.png')
+
+# 将错误图片转换为 Base64 编码
+_, buffer = cv2.imencode('.png', error_image)
+error_image_base64 = base64.b64encode(buffer).decode('utf-8')
+
+
 app = Flask(__name__)
 @app.route('/')
 def index():
@@ -32,10 +41,15 @@ def process_frame():
     image_data = request.json.get('image_data')
     jumpORnot=request.json.get('jumpORnot')
     flip=(request.json.get('imgFlip')=='true')
-
-    decoded_data = base64.b64decode(image_data.split(',')[1])
-    np_data = np.frombuffer(decoded_data, np.uint8)
-    frame = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
+    try:
+        decoded_data = base64.b64decode(image_data.split(',')[1])
+        np_data = np.frombuffer(decoded_data, np.uint8)
+        frame = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
+    except Exception as e:
+        print("Error processing frame:", e)
+        # 返回错误图片的 Base64 编码数据
+        return Response(response=error_image_base64, status=500, mimetype='text/plain')
+    
     if flip:
         frame = cv2.flip(frame, 1)
 
@@ -46,16 +60,18 @@ def process_frame():
 
     global i,preBallStack,rim_t_ls,wait_frame
     # 仅处理队列中的最新帧
-    if jumpORnot:
-        newest_frame,preBallStack,rim_t_ls=predict(model,newest_frame,preBallStack)
+    # if jumpORnot:
+    #     newest_frame,preBallStack,rim_t_ls=predict(model,newest_frame,preBallStack)
     
-    score,newest_frame,wait_frame=judge_shoot(preBallStack,newest_frame,preBallStack,rim_t_ls,wait_frame)
+    # score,newest_frame,wait_frame=judge_shoot(preBallStack,newest_frame,preBallStack,rim_t_ls,wait_frame)
+
     all_frame.append(newest_frame)
     _, buffer = cv2.imencode('.jpg', newest_frame)
     processed_data = base64.b64encode(buffer).decode('utf-8')
 
     # 返回处理后的图像数据
     return Response(response=processed_data, status=200, mimetype='text/plain')
+
 
 
 @app.route('/upload', methods=['POST'])
