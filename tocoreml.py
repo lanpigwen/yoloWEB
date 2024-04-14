@@ -31,9 +31,19 @@
 
 from ultralytics import YOLO
 
-# Load a model
-model = YOLO('best-ball-rim-4.pt')  # load an official model
-# model = YOLO('yolov8n.pt')  # load a custom trained
+# # Load a model
+# model = YOLO('best-ball-rim-4.pt')  # load an official model
+# # model = YOLO('yolov8n.pt')  # load a custom trained
 
-# Use the model
-success=model.export(format='onnx',simplify=True,opset=12)
+# # Use the model
+# success=model.export(format='onnx',simplify=True)
+
+# Load the exported ONNX model
+onnx_model = YOLO('yolov8n.onnx',task='detect')
+# onnx_model = YOLO('best-ball-rim-4.onnx',task='detect')
+
+
+# Run inference
+
+video_file=r"C:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-8.mp4"
+results = onnx_model(video_file,show=True)

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Recorder</title>
-    <!-- <script src="static/worker.js"></script> -->
 </head>
 <body>
     <button id="startButton">Start Recording</button>
@@ -39,7 +38,7 @@
         let originTime=Date.now();
         let lastFrame=Date.now();
         let ct1,ct2,ct3;
-
+        let worker = new Worker('static/worker.js');
 
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
@@ -97,9 +96,8 @@
             while(ct0-lastFrame<33){
                 ct0=Date.now();
             }
-            console.log('frame gap',ct1,"cap",ct2,"send",ct3);
             ct1=ct0-lastFrame;
-            // console.log('frame gap',ct1-lastFrame)
+            console.log('frame gap',ct1,"cap",ct2,"send",ct3);
             lastFrame=Date.now();
             const {imageData,imageWidth,imageHeight} = captureFrame(video);
             ct2=Date.now()-lastFrame;
@@ -203,8 +201,8 @@
         function captureFrame(video) {
             frameCount++;
             const canvas = document.createElement("canvas");
-            const maxWidth = 1080;
-            const maxHeight = 1080;
+            const maxWidth = 640;
+            const maxHeight = 640;
             width = video.videoWidth;
             height = video.videoHeight;
             if(resetCanvasSize){
@@ -265,7 +263,6 @@
         })
           .then((response) => response.text())
           .then((data) => {
-            let t1=Date.now();
             if(resultCanvas.width==0 || resultCanvas.height==0){
                 resultCanvas.width=video.videoWidth;
                 resultCanvas.height=video.videoHeight;
@@ -278,6 +275,7 @@
                     // 将图像渲染到 canvas 上
                     resultContext.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
                     // console.log(resultCanvas.width, resultCanvas.height);
+                    
                 };
                 img.src = "data:image/jpeg;base64," + data;
             })

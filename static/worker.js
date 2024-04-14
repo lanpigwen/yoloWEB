@@ -1,17 +1,33 @@
+// worker.js
+
 self.onmessage = function(event) {
-    // 接收来自主线程的视频帧数据
-    const videoFrame = event.data;
-    
-    // 创建 OffscreenCanvas 对象
-    const offscreenCanvas = new OffscreenCanvas(videoFrame.width, videoFrame.height);
-    const offscreenContext = offscreenCanvas.getContext('2d');
-    
-    // 将视频帧绘制到 OffscreenCanvas 上
-    offscreenContext.drawImage(videoFrame, 0, 0);
-    
-    // 将 OffscreenCanvas 的图像数据转换为 Data URL
-    const frameDataURL = offscreenCanvas.toDataURL('image/jpeg');
-    
-    // 将处理后的图像数据发送回主线程
-    postMessage(frameDataURL);
+    const imageData = event.data.imageData;
+    const resultCanvasWidth = event.data.resultCanvasWidth;
+    const resultCanvasHeight = event.data.resultCanvasHeight;
+
+    createImageBitmap(base64ToBlob(imageData)).then(function(bitmap) {
+        const offscreenCanvas = new OffscreenCanvas(resultCanvasWidth, resultCanvasHeight);
+        const offscreenContext = offscreenCanvas.getContext("2d");
+
+        // 清除之前的渲染
+        offscreenContext.clearRect(0, 0, resultCanvasWidth, resultCanvasHeight);
+        // 将图像渲染到离屏 canvas 上
+        offscreenContext.drawImage(bitmap, 0, 0, resultCanvasWidth, resultCanvasHeight);
+
+        // 将渲染后的图像数据发送回主线程
+        self.postMessage(offscreenCanvas.transferToImageBitmap());
+    });
 };
+
+function base64ToBlob(base64) {
+    const byteString = atob(base64.split(',')[1]);
+    const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+
+    return new Blob([ab], { type: mimeString });
+}

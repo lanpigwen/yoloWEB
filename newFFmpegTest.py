@@ -97,8 +97,11 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
 
 def show_video(show_queue,show_height,origin_fps,show_fps,fit_show_fps):
     time_start=time.time()
+    last_frame=time.time()
     showed_fps=0
+    frame_ms=[]
     while True:
+
         frame=show_queue.get()
         if frame is None:
             break
@@ -110,10 +113,25 @@ def show_video(show_queue,show_height,origin_fps,show_fps,fit_show_fps):
         showed_fps+=1
 
         if show_fps:
+            frame_ms.append(time.time()-last_frame)
+            if showed_fps==1:
+                fps=int(1.0/(time.time()-last_frame))
+            if len(frame_ms)==10:
+                ms_10=sum(frame_ms)
+                fps=int(10.0/ms_10)
+                frame_ms.clear()
+            last_frame=time.time()
             frame=cv2.resize(frame,(frame.shape[1],frame.shape[0]))
-            fps=int(showed_fps/(time.time()-time_start))
-            fps_text=f'fps:{fps}'
-            cv2.putText(frame,fps_text,(20,60),cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2)
+            rec_color=(0, 0, 0)
+            text_color=(255, 255, 255)
+
+            text = f'fps:{fps}'
+            # 获取文本的尺寸
+            text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 1)
+            text_width, text_height = text_size
+            cv2.rectangle(frame, (0, 0),(int(text_width), int(text_height)), rec_color, -1)  
+            cv2.putText(frame, text, (0, int(text_height)), cv2.FONT_HERSHEY_SIMPLEX, 1, text_color, 1)
+
         if fit_show_fps:
             while int(showed_fps/(time.time()-time_start))>origin_fps:    
                 time.sleep(0.001)
@@ -162,7 +180,7 @@ def save_video(save_queue,video_file,out_video_file,encoder,preset,video_size,fp
                 '-pix_fmt', 'bgr24',
                 '-r', f'{fps}',
                 '-i', '-',
-                # '-i', video_file,
+                '-i', video_file,
                 # '-i', 'audio=麦克风阵列 (英特尔® 智音技术)',
                 '-map', '0:v',  # 明确指定第一个输入的视频流
                 '-map', '1:a', 
@@ -240,7 +258,7 @@ if __name__ == '__main__':
     # video_file=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-2.mp4"
     # video_file="https://play2nm.hnyongshun.cn/live/hd-en-4wyrn1to9720q86.m3u8"
 
-    video_file=r"C:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-8.mp4"
+    video_file=r"C:\NBA-DATASETS\tiktok-shoot\shoot.mp4"
     # video_file=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-2.mp4"
     # video_file=r"D:\NBA-DATASETS\CunBA-replay\CunBA-replay-8.mp4"
     # video_file="https://v3-web.douyinvod.com/ad247f653d54a50c77583451b8972e3c/661699cf/video/tos/cn/tos-cn-ve-15c001-alinc2/og9FSAsMAK5oQgZjwnDeDqWvQBFbMZc8FgnfAs/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=830&bt=830&cs=0&ds=6&ft=LjhJEL998xztuo0mo0P5fQhlpPiXEkUWxVJEUA-jpbPD-Ipz&mime_type=video_mp4&qs=0&rc=aTRkMzw4PGllZmU3PDM0OkBpMztyMzg6ZmU6aDMzNGkzM0A1Ml8wY2M1X2AxLWJeLTM0YSNgamhfcjQwaXNgLS1kLTBzcw%3D%3D&btag=e00028000&cquery=101n_100B_100x_100z_100o&dy_q=1712753472&feature_id=f0150a16a324336cda5d6dd0b69ed299&l=2024041020511257482ACBCA1CCB0C5FE9"
@@ -248,6 +266,7 @@ if __name__ == '__main__':
     # model = YOLO('pts/best-ball-rim-n-600s.engine')
     outfile=''.join(os.path.basename(video_file).split('.')[:-1])+'-predict.'+'mp4'
     outfile=os.path.join('./results',outfile)
+    # outfile="result.mp4"
     # print(outfile)
     mainThreads(video_file,model,out_video_file=outfile,
                 show_height=640,
@@ -256,9 +275,9 @@ if __name__ == '__main__':
                 encoder='mpeg4',
                 preset='ultrafast',
                 model_predict=True,
-                jump_frame=0,
+                jump_frame=1,
                 show_fps=True,
-                fit_show_fps=True,
+                fit_show_fps=False,
                 isCamera=False,
                 isFront=False
                 )

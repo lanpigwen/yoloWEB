@@ -60,10 +60,10 @@ def process_frame():
 
     global i,preBallStack,rim_t_ls,wait_frame
     # 仅处理队列中的最新帧
-    # if jumpORnot:
-    #     newest_frame,preBallStack,rim_t_ls=predict(model,newest_frame,preBallStack)
+    if jumpORnot:
+        newest_frame,preBallStack,rim_t_ls=predict(model,newest_frame,preBallStack)
     
-    # score,newest_frame,wait_frame=judge_shoot(preBallStack,newest_frame,preBallStack,rim_t_ls,wait_frame)
+    score,newest_frame,wait_frame=judge_shoot(preBallStack,newest_frame,preBallStack,rim_t_ls,wait_frame)
 
     all_frame.append(newest_frame)
     _, buffer = cv2.imencode('.jpg', newest_frame)
