@@ -472,7 +472,70 @@ def judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thic
 
 
 
-    
+def manage_ball_state(preBallStack,rim,ball_state):
+
+    balls_in_pre=[i for i in preBallStack if i is not None]
+    rims=[i for i in rim if i is not None]
+
+    if len(balls_in_pre)<1 or len(rims)<1:
+        return ball_state
+    low_ball,high_ball=balls_in_pre[-1],balls_in_pre[0]
+    condition=high_ball[1]<rims[0][3] and low_ball[3]>rims[0][3] and b2b_distance(low_ball,rims[0])<4*abs(low_ball[3]-low_ball[1])
+    condition=low_ball[3]>rims[0][3] and b2b_distance(low_ball,rims[0])>4*abs(low_ball[3]-low_ball[1])
+    if condition:
+        ball_state='normal'
+    elif ball_state=='normal':
+        if low_ball[3]<=rims[0][3]:
+            ball_state='shooting'
+    elif ball_state=='shooting':
+        if b2b_distance(low_ball,rims[0])<=4*abs(low_ball[3]-low_ball[1]):
+            ball_state='Judging'
+
+    return ball_state
+
+def draw_record(frame,video_size,score_count,shooting_count):
+    score_layer = np.zeros_like(frame, dtype=np.uint8)
+    text=f'{score_count}/{shooting_count}'
+    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+    text_width, text_height = text_size
+    mid_x,qrt_y=int(video_size[0]/2),int(video_size[1]-text_height)
+    tx=mid_x-int(text_width/2.0)
+    ty=qrt_y
+    cv2.putText(score_layer, text, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+    return score_layer
+
+def manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting_balls_line,ball_cxy,ball_thickness,rim_t_ls,score,score_count,shooting_count,ball_state):
+    video_size=[frame.shape[1],frame.shape[0]]
+    pre_ball_state=ball_state
+    ball_state=manage_ball_state(preBallStack,rim_t_ls,ball_state)
+    # cv2.putText(frame,ball_state,(20,200),cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 3)
+
+
+    if pre_ball_state=='normal' and ball_state=='shooting':
+        shooting_count+=1
+    if ball_state=='shooting':
+        if preBallStack[-1] is not None:
+            shooting_balls_line.append(preBallStack[-1])
+            transparent_layer,ball_cxy,ball_thickness=draw_ball_track(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,0,255))
+    if score:
+        score_count+=1
+        # 变绿
+        transparent_layer,shooting_balls_line=judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,255,0))
+        score_layer=draw_record(frame,video_size,score_count,shooting_count)
+        shooting_balls_line=[]
+        ball_cxy=[]
+        ball_thickness=[]    
+
+    if pre_ball_state=='Judging' and ball_state=='normal':
+        if len(shooting_balls_line)>0:
+            # 说明还未经过score的重置
+            score_layer=draw_record(frame,video_size,score_count,shooting_count)
+            shooting_balls_line=[]
+            ball_cxy=[]
+            ball_thickness=[]         
+    return score_layer,transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,score_count,shooting_count,ball_state
+
+
 
 
 

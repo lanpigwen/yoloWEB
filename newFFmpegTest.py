@@ -5,7 +5,7 @@ import time
 import ffmpeg
 from ultralytics import YOLO
 import os
-from utils import get_cls_idx_tensors, update_pre_n_frames, draw_rim, draw_ball,judge_shoot,judge_shoot_attempt,b2b_distance,draw_ball_track
+from utils import get_cls_idx_tensors, update_pre_n_frames, draw_rim, draw_ball,judge_shoot,manage_shoot_score,judge_shoot_attempt,b2b_distance,draw_ball_track,manage_ball_state,draw_record
 from threading import Thread
 from queue import Queue
 import re
@@ -65,9 +65,9 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
     jump=0
     wait_frame=0
     frame_idx=0
-    shooting_wait=0
     shooting_count=0
     score_count=0
+    ball_state='normal'
     # 使用OpenCV读取并显示视频帧
     while True:
         # 从管道中读取帧数据
@@ -83,6 +83,7 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
         if not jump_frame:jump=0
         if model_predict and jump==0:
             frame = cv2.resize(frame, (video_size[0],video_size[1]))
+            
             #镜像
             if isFront:
                 frame = cv2.flip(frame, 1)
@@ -93,44 +94,8 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
                 frame_idx=1
             frame,preBallStack,rim_t_ls=predict(model,frame,preBallStack)
             score,frame,wait_frame=judge_shoot(preBallStack,frame,preBallStack,rim_t_ls,wait_frame)
+            score_layer,transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,score_count,shooting_count,ball_state=manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting_balls_line,ball_cxy,ball_thickness,rim_t_ls,score,score_count,shooting_count,ball_state)
 
-            if shooting_wait>0:
-                shooting_wait-=1
-            if len(shooting_balls_line)==1:
-                shooting_count+=1
-
-            if preBallStack[-1] is not None :
-                rims=[i for i in rim_t_ls if i is not None]
-                if len(rims)>=1:
-                    if preBallStack[-1][3]<=(rims[0][1]+2*(preBallStack[-1][3]-preBallStack[-1][1])) and shooting_wait==0 and b2b_distance(rims[0],preBallStack[-1]) > 2*abs(preBallStack[-1][0]-preBallStack[-1][2]):
-                        shooting_balls_line.append(preBallStack[-1])
-                        transparent_layer,ball_cxy,ball_thickness=draw_ball_track(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,0,255))
-                    if b2b_distance(rims[0],preBallStack[-1]) <= 2*abs(preBallStack[-1][0]-preBallStack[-1][2]):
-                        shooting_wait=30
-                        
-                    if score or preBallStack[-1][3]-rims[0][1]>=4*abs(preBallStack[-1][0]-preBallStack[-1][2]):
-                        if score:
-                            score_count+=1
-                            transparent_layer,shooting_balls_line=judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,255,0))
-                            # 结束本次投篮判定
-                        # score_x,score_y=int(video_size[0]/2),int()
-                        score_layer = np.zeros_like(frame, dtype=np.uint8)
-                        
-                        text=f'{score_count}/{shooting_count}'
-                        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
-                        text_width, text_height = text_size
-                        mid_x,qrt_y=int(video_size[0]/2),int(video_size[1]-text_height)
-                        tx=mid_x-int(text_width/2.0)
-                        ty=qrt_y
-                        cv2.putText(score_layer, text, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
-                        shooting_balls_line=[]
-                        ball_cxy=[]
-                        ball_thickness=[]
-
-            # 还需增加什么时候判断投篮没入框 也可以当ball高于框时，清一下0
-            
-                # 可以通过不断叠加透明度 ，会让之前画的的透明度越来越高（越透明）
-                # 也可以在投篮发生时，先把之前的透明度提高一下
             frame= cv2.addWeighted(frame, 1, transparent_layer, 1, 0)
             frame= cv2.addWeighted(frame, 1, score_layer, 1, 0)
 
