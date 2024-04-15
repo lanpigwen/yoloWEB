@@ -178,6 +178,31 @@ def draw_ball(frame, ball, clsNames, tsize1=1, tsize2=1, recsize=1, rec_color=(0
 
     return frame
 
+def draw_ball_track(frame,shooting_balls_line,ball_cxy,ball_thickness,trace_color):
+
+    if len(shooting_balls_line)>3:
+        cy1=int((shooting_balls_line[-2][1].item()+shooting_balls_line[-2][3].item())/2)
+        cy2=int((shooting_balls_line[-1][1].item()+shooting_balls_line[-1][3].item())/2)
+
+        fit_y_min,fit_y_max=cy1,cy2
+        fit_y_min,fit_y_max=[fit_y_min,fit_y_max] if fit_y_min<fit_y_max else [fit_y_max,fit_y_min]
+        p=fit_curve_dst(shooting_balls_line,x2x=True)
+
+        px_start=int((shooting_balls_line[-2][0].item()+shooting_balls_line[-2][2].item())/2)
+        px_end=int((shooting_balls_line[-1][0].item()+shooting_balls_line[-1][2].item())/2)
+        px_start,px_end=[px_start,px_end] if px_start<px_end else [px_end,px_start]
+        thickness=int(0.2*abs(shooting_balls_line[-1][2].item()-shooting_balls_line[-1][0]))
+        # 这里不太平滑
+        for i in range(px_start-1,px_end+1):
+            fit_y=int(p(i))
+            if fit_y>fit_y_max+2 or fit_y<fit_y_min-2:
+                continue
+            ball_cxy.append((i,fit_y))
+            ball_thickness.append(thickness)
+            cv2.circle(frame,(i,fit_y),thickness,trace_color,-1)
+
+    return frame,ball_cxy,ball_thickness
+
 def get_cls_idx_tensors(results,cls_idx=0):
     dataLS = results[0].boxes.data
     findCLS = results[0].boxes.cls
@@ -207,8 +232,7 @@ def get_balls_dst(balls_tensors,pre_n_frames):
     for b_i,ball_tensor in enumerate(balls_tensors):
         balls_dst[b_i]=b2b_distance_v2(ball_tensor,pre_n_frames,pre_balls_in_n_frames)
     return balls_dst
-
-def fit_curve_dst(pre_n_frames):
+def fit_curve_dst(pre_n_frames,x2x=False):
     points=[[((i[0]+i[2])/2.0).item(),((i[1]+i[3])/2.0).item()] for i in pre_n_frames if i is not None]
     if len(points)<2:
         return None
@@ -218,8 +242,10 @@ def fit_curve_dst(pre_n_frames):
     y = points[:, 1]
     
     # 多项式拟合，这里使用三次多项式
-    # p = Polynomial.fit(x, y, 3)
-    p = Polynomial.fit(y, x, 3)
+    if x2x:
+        p=Polynomial.fit(x, y, 3)
+    else:
+        p = Polynomial.fit(y, x, 3)
     return p
 
 def draw_fit(frame,balls_tensors,p):
@@ -405,26 +431,51 @@ def judge_shoot(preBallStack,frame,ball,rim,wait_frame):
         #     print(fit_x)
         #     pass
         alpha=0.5
+
         if wait_frame==0 and balls_in_pre[-1][1]>rim[1] and fit_x>rim[0] and fit_x<rim[2] and b2b_distance(rim,balls_in_pre[0])<4*abs(balls_in_pre[0][0]-balls_in_pre[0][2]) and balls_in_pre[0][1]<=balls_in_pre[-1][1]:
-            print('!!!!!!!!!!!进球！！！！！！！！！')
-            
-            overlay = frame.copy()
-            cv2.putText(overlay, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
-            cv2.circle(overlay,(int(fit_x),int(c_y)),4,(0,0,255),4)
-            cv2.addWeighted( frame, 1 - alpha,overlay, alpha, 0, frame)
-            # cv2.putText(frame, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
-            # cv2.circle(frame,(int(fit_x),int(c_y)),4,(0,0,255),4)
+            # overlay = frame.copy()
+            # cv2.putText(overlay, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+            # cv2.circle(overlay,(int(fit_x),int(c_y)),4,(0,0,255),4)
+            # cv2.addWeighted( frame, 1 - alpha,overlay, alpha, 0, frame)
             wait_frame=30
             return True,frame,wait_frame
         else:
             wait_frame-=1
-            if(wait_frame>5):
-                # cv2.putText(frame, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
-                overlay = frame.copy()
-                cv2.putText(overlay, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
-                cv2.circle(overlay,(int(fit_x),int(c_y)),4,(0,0,255),4)
-                cv2.addWeighted( frame, 1 - alpha,overlay, alpha, 0, frame)
+            # if(wait_frame>5):
+
+                # overlay = frame.copy()
+                # cv2.putText(overlay, 'score', (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0), 2)
+                # cv2.circle(overlay,(int(fit_x),int(c_y)),4,(0,0,255),4)
+                # cv2.addWeighted( frame, 1 - alpha,overlay, alpha, 0, frame)
+                # # return True,frame,max(0,wait_frame)
             return False,frame,max(0,wait_frame)
+
+
+def judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,trace_color=(0,255,0)):
+    # rims=[i for i in rim if i is not None]
+
+    # line_left=[]
+    # line_right=[]
+    # for ball in shooting_balls_line[::-1]:
+    #     x,y=ball[0],ball[3]
+    #     if x>=rims[0][0] and y<=rims[0][1]:
+    #         line_left.append(ball)
+    #     elif x<=rims[0][0] and y<=rims[0][1]:
+    #         line_right.append(ball)
+    # line=line_left if len(line_left)>len(line_right) else line_right
+    # clsNames=['ball','rim']
+
+    transparent_layer=cv2.addWeighted(transparent_layer, 0, transparent_layer, 0.8, 0)
+    for i in range(len(ball_thickness)):
+        cv2.circle(transparent_layer,(ball_cxy[i][0],ball_cxy[i][1]),ball_thickness[i],trace_color,-1)
+    return transparent_layer,shooting_balls_line
+
+
+
+    
+
+
+
 
 def testfun(model,video,size=640,confidence=0.10):
     cap = cv2.VideoCapture(video)
@@ -496,21 +547,21 @@ def testfun(model,video,size=640,confidence=0.10):
 # imgs=r"D:\NBA-DATASETS\篮球图片"
 # imgspath=[os.path.join(imgs,i ) for i in os.listdir(imgs)]
 
-# for i in imgspath:
-#     predict(model,i)
-video=r"https://xzbonlinepull.pq8.co/live/hd-zh-2-3736296.m3u8?txSecret=7533569dc9cf6841f299eaab9cecd748&txTime=1708904184"
-# video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-16.mp4"
-# video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-1.mp4"
-# # video=r"D:\NBA-DATASETS\videos\Harden-shoot-2.mp4"
-# video=
-video=r"D:\NBA-DATASETS\videos\NBA-replay-27-4.mp4"
-# video=0
-# video=r"https://v3-web.douyinvod.com/c2554c35f60ae6a869726b33c49b6cea/65d9e9ef/video/tos/cn/tos-cn-ve-15/okM8LANDC7EQmaeDABgEInfhRQYrXyZKz5ALBY/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=1492&bt=1492&cs=0&ds=3&ft=bvTKJbQQqU-mfJ40Do0OqY8hFgpiW4isejKJChUkoG0P3-I&mime_type=video_mp4&qs=1&rc=ZTtmaGg1Ozs1Ozg7ZzMzOkBpM2VsM2U6ZjNwcTMzNGkzM0BfNjZeY2M0XmMxXmMxNGJhYSNnY2xycjRnYGBgLS1kLS9zcw%3D%3D&btag=e00028000&dy_q=1708776282&feature_id=46a7bb47b4fd1280f3d3825bf2b29388&l=202402242004415EDD12B277F8E89CB207"
-model = YOLO('pts/best-ball-rim-4.pt')
+# # for i in imgspath:
+# #     predict(model,i)
+# video=r"https://xzbonlinepull.pq8.co/live/hd-zh-2-3736296.m3u8?txSecret=7533569dc9cf6841f299eaab9cecd748&txTime=1708904184"
+# # video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-16.mp4"
+# # video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-1.mp4"
+# # # video=r"D:\NBA-DATASETS\videos\Harden-shoot-2.mp4"
+# # video=
+# video=r"D:\NBA-DATASETS\videos\NBA-replay-27-4.mp4"
+# # video=0
+# # video=r"https://v3-web.douyinvod.com/c2554c35f60ae6a869726b33c49b6cea/65d9e9ef/video/tos/cn/tos-cn-ve-15/okM8LANDC7EQmaeDABgEInfhRQYrXyZKz5ALBY/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=1492&bt=1492&cs=0&ds=3&ft=bvTKJbQQqU-mfJ40Do0OqY8hFgpiW4isejKJChUkoG0P3-I&mime_type=video_mp4&qs=1&rc=ZTtmaGg1Ozs1Ozg7ZzMzOkBpM2VsM2U6ZjNwcTMzNGkzM0BfNjZeY2M0XmMxXmMxNGJhYSNnY2xycjRnYGBgLS1kLS9zcw%3D%3D&btag=e00028000&dy_q=1708776282&feature_id=46a7bb47b4fd1280f3d3825bf2b29388&l=202402242004415EDD12B277F8E89CB207"
+# model = YOLO('pts/best-ball-rim-4.pt')
 
 
-if __name__ =='__main__':
-    t1=time.time()
-    testfun(model,video)
-    t2=time.time()
-    print(f'耗时{t2-t1}s')
+# if __name__ =='__main__':
+#     t1=time.time()
+#     testfun(model,video)
+#     t2=time.time()
+#     print(f'耗时{t2-t1}s')

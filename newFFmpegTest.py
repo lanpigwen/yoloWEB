@@ -5,7 +5,7 @@ import time
 import ffmpeg
 from ultralytics import YOLO
 import os
-from utils import get_cls_idx_tensors, update_pre_n_frames, draw_rim, draw_ball,judge_shoot
+from utils import get_cls_idx_tensors, update_pre_n_frames, draw_rim, draw_ball,judge_shoot,judge_shoot_attempt,b2b_distance,draw_ball_track
 from threading import Thread
 from queue import Queue
 import re
@@ -22,7 +22,7 @@ def predict(model,frame,preBallStack,confidence=0.1):
     rim_t_ls=get_cls_idx_tensors(results,cls_idx=1)
     preBallStack,ball_t_ls,b_ball=update_pre_n_frames(preBallStack,ball_t_ls,frame,clsNames,pre_n=8)
     frame=draw_rim(frame,rim_t_ls,clsNames)
-    frame=draw_ball(frame,preBallStack,clsNames,tsize1=1,tsize2=1,recsize=1,rec_color=(255,0,0),show_text=False)
+    # frame=draw_ball(frame,preBallStack,clsNames,tsize1=1,tsize2=1,recsize=1,rec_color=(255,0,0),show_text=False)
     frame=draw_ball(frame,[b_ball],clsNames)
     return frame,preBallStack,rim_t_ls
 
@@ -59,8 +59,15 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
     pipe1 = sp.Popen(command1, stdout=sp.PIPE)
 
     preBallStack=[]
+    shooting_balls_line=[]
+    ball_cxy=[]
+    ball_thickness=[]
     jump=0
     wait_frame=0
+    frame_idx=0
+    shooting_wait=0
+    shooting_count=0
+    score_count=0
     # 使用OpenCV读取并显示视频帧
     while True:
         # 从管道中读取帧数据
@@ -79,14 +86,53 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
             #镜像
             if isFront:
                 frame = cv2.flip(frame, 1)
-
+            if frame_idx==0:
+                # 创建一个与底层帧相同大小的透明图像
+                transparent_layer = np.zeros_like(frame, dtype=np.uint8)
+                score_layer = np.zeros_like(frame, dtype=np.uint8)
+                frame_idx=1
             frame,preBallStack,rim_t_ls=predict(model,frame,preBallStack)
-
             score,frame,wait_frame=judge_shoot(preBallStack,frame,preBallStack,rim_t_ls,wait_frame)
-            if score:
-                print(preBallStack[-1])
-                print(rim_t_ls[-1])
 
+            if shooting_wait>0:
+                shooting_wait-=1
+            if len(shooting_balls_line)==1:
+                shooting_count+=1
+
+            if preBallStack[-1] is not None :
+                rims=[i for i in rim_t_ls if i is not None]
+                if len(rims)>=1:
+                    if preBallStack[-1][3]<=(rims[0][1]+2*(preBallStack[-1][3]-preBallStack[-1][1])) and shooting_wait==0 and b2b_distance(rims[0],preBallStack[-1]) > 2*abs(preBallStack[-1][0]-preBallStack[-1][2]):
+                        shooting_balls_line.append(preBallStack[-1])
+                        transparent_layer,ball_cxy,ball_thickness=draw_ball_track(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,0,255))
+                    if b2b_distance(rims[0],preBallStack[-1]) <= 2*abs(preBallStack[-1][0]-preBallStack[-1][2]):
+                        shooting_wait=30
+                        
+                    if score or preBallStack[-1][3]-rims[0][1]>=4*abs(preBallStack[-1][0]-preBallStack[-1][2]):
+                        if score:
+                            score_count+=1
+                            transparent_layer,shooting_balls_line=judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,255,0))
+                            # 结束本次投篮判定
+                        # score_x,score_y=int(video_size[0]/2),int()
+                        score_layer = np.zeros_like(frame, dtype=np.uint8)
+                        
+                        text=f'{score_count}/{shooting_count}'
+                        text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+                        text_width, text_height = text_size
+                        mid_x,qrt_y=int(video_size[0]/2),int(video_size[1]-text_height)
+                        tx=mid_x-int(text_width/2.0)
+                        ty=qrt_y
+                        cv2.putText(score_layer, text, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+                        shooting_balls_line=[]
+                        ball_cxy=[]
+                        ball_thickness=[]
+
+            # 还需增加什么时候判断投篮没入框 也可以当ball高于框时，清一下0
+            
+                # 可以通过不断叠加透明度 ，会让之前画的的透明度越来越高（越透明）
+                # 也可以在投篮发生时，先把之前的透明度提高一下
+            frame= cv2.addWeighted(frame, 1, transparent_layer, 1, 0)
+            frame= cv2.addWeighted(frame, 1, score_layer, 1, 0)
 
         jump=(jump+1)%(jump_frame+1)
         save_queue.put(frame)
@@ -259,7 +305,9 @@ if __name__ == '__main__':
     # video_file="https://play2nm.hnyongshun.cn/live/hd-en-4wyrn1to9720q86.m3u8"
 
     video_file=r"C:\NBA-DATASETS\tiktok-shoot\shoot.mp4"
-    # video_file=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-2.mp4"
+    # video_file=r"C:\NBA-DATASETS\tiktok-shoot\练完核心后的各种离谱投篮，甚至可以干拔三分.mp4"
+    # video_file=r"C:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-2.mp4"
+    # video_file=r"C:\Users\78381\Downloads\1713182466649.mp4"
     # video_file=r"D:\NBA-DATASETS\CunBA-replay\CunBA-replay-8.mp4"
     # video_file="https://v3-web.douyinvod.com/ad247f653d54a50c77583451b8972e3c/661699cf/video/tos/cn/tos-cn-ve-15c001-alinc2/og9FSAsMAK5oQgZjwnDeDqWvQBFbMZc8FgnfAs/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=830&bt=830&cs=0&ds=6&ft=LjhJEL998xztuo0mo0P5fQhlpPiXEkUWxVJEUA-jpbPD-Ipz&mime_type=video_mp4&qs=0&rc=aTRkMzw4PGllZmU3PDM0OkBpMztyMzg6ZmU6aDMzNGkzM0A1Ml8wY2M1X2AxLWJeLTM0YSNgamhfcjQwaXNgLS1kLTBzcw%3D%3D&btag=e00028000&cquery=101n_100B_100x_100z_100o&dy_q=1712753472&feature_id=f0150a16a324336cda5d6dd0b69ed299&l=2024041020511257482ACBCA1CCB0C5FE9"
     model = YOLO('pts/best-ball-rim-4.engine')
@@ -275,7 +323,7 @@ if __name__ == '__main__':
                 encoder='mpeg4',
                 preset='ultrafast',
                 model_predict=True,
-                jump_frame=1,
+                jump_frame=0,
                 show_fps=True,
                 fit_show_fps=False,
                 isCamera=False,
