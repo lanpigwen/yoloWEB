@@ -1,0 +1,4 @@
+*.mp4
+*.avi
+yolov8m-pose.engine
+yolov8m-pose.onnx
