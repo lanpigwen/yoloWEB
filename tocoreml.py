@@ -33,17 +33,17 @@ from ultralytics import YOLO
 
 # # Load a model
 # model = YOLO('best-ball-rim-4.pt')  # load an official model
-# # model = YOLO('yolov8n.pt')  # load a custom trained
+model = YOLO('pts/yolov8m-pose.pt')  # load a custom trained
 
 # # Use the model
-# success=model.export(format='onnx',simplify=True)
+# success=model.export(format='engine')
 
 # Load the exported ONNX model
-onnx_model = YOLO('pts\yolov8n-pose.engine')
-# onnx_model = YOLO('best-ball-rim-4.onnx',task='detect')
+# onnx_model = YOLO('pts\yolov8n-pose.onnx')
+# # onnx_model = YOLO('best-ball-rim-4.onnx',task='detect')
 
 
-# Run inference
+# # Run inference
 
-video_file=r"C:\NBA-DATASETS\tiktok-shoot\练完核心后的各种离谱投篮，甚至可以干拔三分.mp4"
-results = onnx_model(video_file,show=True,save=True)
+video_file=r"C:\NBA-DATASETS\shooting\1713181884349.mp4"
+results = model(video_file,show=True,save=True)
