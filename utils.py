@@ -146,7 +146,25 @@ def draw_rim(frame,rim,clsNames):
 
     return frame
 
-
+def draw_keypoints(frame,results):
+    stp=[[5,6,12,11],[0,2,0,1],[12,14,11,13],[6,8,5,7]]
+    edp=[[6,12,11,5],[2,4,1,3],[14,16,13,15],[8,10,7,9]]
+    color=[(0,100,200),(200,100,0),(100,0,200),(200,0,100)]
+    keypoints=results[0].keypoints.xy
+    if keypoints.numel() == 0:
+        # 判断该tensor是否空
+        return frame
+    for kpt in keypoints:
+        # kpt 为检测到的某一个人的17个keypoint xy
+        for i,st in enumerate(stp):
+            ed=edp[i]
+            for idx,start in enumerate(st):
+                end=ed[idx]
+                stx,sty=int(kpt[start][0].item()),int(kpt[start][1].item())
+                edx,edy=int(kpt[end][0].item()),int(kpt[end][1].item())
+                if stx*sty*edx*edy!=0:
+                    cv2.line(frame,(stx,sty),(edx,edy),color[i],3,cv2.LINE_AA)
+    return frame
 
 def draw_ball(frame, ball, clsNames, tsize1=1, tsize2=1, recsize=1, rec_color=(0, 100, 255), text_color=(255, 255, 255), show_rec=True, show_text=True):
     if ball is None:
@@ -232,6 +250,7 @@ def get_balls_dst(balls_tensors,pre_n_frames):
     for b_i,ball_tensor in enumerate(balls_tensors):
         balls_dst[b_i]=b2b_distance_v2(ball_tensor,pre_n_frames,pre_balls_in_n_frames)
     return balls_dst
+
 def fit_curve_dst(pre_n_frames,x2x=False):
     points=[[((i[0]+i[2])/2.0).item(),((i[1]+i[3])/2.0).item()] for i in pre_n_frames if i is not None]
     if len(points)<2:
@@ -450,27 +469,12 @@ def judge_shoot(preBallStack,frame,ball,rim,wait_frame):
                 # # return True,frame,max(0,wait_frame)
             return False,frame,max(0,wait_frame)
 
-
 def judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,trace_color=(0,255,0)):
-    # rims=[i for i in rim if i is not None]
-
-    # line_left=[]
-    # line_right=[]
-    # for ball in shooting_balls_line[::-1]:
-    #     x,y=ball[0],ball[3]
-    #     if x>=rims[0][0] and y<=rims[0][1]:
-    #         line_left.append(ball)
-    #     elif x<=rims[0][0] and y<=rims[0][1]:
-    #         line_right.append(ball)
-    # line=line_left if len(line_left)>len(line_right) else line_right
-    # clsNames=['ball','rim']
 
     transparent_layer=cv2.addWeighted(transparent_layer, 0, transparent_layer, 0.8, 0)
     for i in range(len(ball_thickness)):
         cv2.circle(transparent_layer,(ball_cxy[i][0],ball_cxy[i][1]),ball_thickness[i],trace_color,-1)
     return transparent_layer,shooting_balls_line
-
-
 
 def manage_ball_state(preBallStack,rim,ball_state):
 
@@ -535,11 +539,6 @@ def manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting
             ball_thickness=[]         
     return score_layer,transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,score_count,shooting_count,ball_state
 
-
-
-
-
-
 def testfun(model,video,size=640,confidence=0.10):
     cap = cv2.VideoCapture(video)
     fourcc=cv2.VideoWriter_fourcc(*'mp4v')
@@ -562,7 +561,7 @@ def testfun(model,video,size=640,confidence=0.10):
     while cap.isOpened():
         success, frame = cap.read()
         if success:
-            results = model(frame,conf=confidence)  # predict on an image
+            results = model(frame,conf=confidence)
             clsNames = results[0].names
             ball_t_ls=get_cls_idx_tensors(results,cls_idx=0)
             rim_t_ls=get_cls_idx_tensors(results,cls_idx=1)
@@ -603,28 +602,3 @@ def testfun(model,video,size=640,confidence=0.10):
     # videoWriter.release()
     cv2.destroyAllWindows()
     merge_audio_with_video(video,'./result.mp4','./result_v_a.mp4')
-
-
-# # video = r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-16.mp4"
-# video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-3.mp4"
-# imgs=r"D:\NBA-DATASETS\篮球图片"
-# imgspath=[os.path.join(imgs,i ) for i in os.listdir(imgs)]
-
-# # for i in imgspath:
-# #     predict(model,i)
-# video=r"https://xzbonlinepull.pq8.co/live/hd-zh-2-3736296.m3u8?txSecret=7533569dc9cf6841f299eaab9cecd748&txTime=1708904184"
-# # video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-16.mp4"
-# # video=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-1.mp4"
-# # # video=r"D:\NBA-DATASETS\videos\Harden-shoot-2.mp4"
-# # video=
-# video=r"D:\NBA-DATASETS\videos\NBA-replay-27-4.mp4"
-# # video=0
-# # video=r"https://v3-web.douyinvod.com/c2554c35f60ae6a869726b33c49b6cea/65d9e9ef/video/tos/cn/tos-cn-ve-15/okM8LANDC7EQmaeDABgEInfhRQYrXyZKz5ALBY/?a=6383&ch=11&cr=3&dr=0&lr=all&cd=0%7C0%7C0%7C3&cv=1&br=1492&bt=1492&cs=0&ds=3&ft=bvTKJbQQqU-mfJ40Do0OqY8hFgpiW4isejKJChUkoG0P3-I&mime_type=video_mp4&qs=1&rc=ZTtmaGg1Ozs1Ozg7ZzMzOkBpM2VsM2U6ZjNwcTMzNGkzM0BfNjZeY2M0XmMxXmMxNGJhYSNnY2xycjRnYGBgLS1kLS9zcw%3D%3D&btag=e00028000&dy_q=1708776282&feature_id=46a7bb47b4fd1280f3d3825bf2b29388&l=202402242004415EDD12B277F8E89CB207"
-# model = YOLO('pts/best-ball-rim-4.pt')
-
-
-# if __name__ =='__main__':
-#     t1=time.time()
-#     testfun(model,video)
-#     t2=time.time()
-#     print(f'耗时{t2-t1}s')

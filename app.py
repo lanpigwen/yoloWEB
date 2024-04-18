@@ -2,19 +2,16 @@ from flask import Flask, render_template, request, Response,send_file
 import base64
 import numpy as np
 import cv2
-from newFFmpegTest import predict,YOLO,judge_shoot
+from newFFmpeg import predict,YOLO,yolo_process,judge_shoot,manage_shoot_score
 import ffmpeg
 from werkzeug.utils import secure_filename
 import subprocess as sp
 import os
 
-model = YOLO('pts/best-ball-rim-4.engine')
+model = YOLO('pts/ball-rim-pose.engine')
 from collections import deque
-i=0
-preBallStack=[]
-rim_t_ls=[]
-wait_frame=0
-# out=None
+allDataList=dict()
+
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编解码器
 # 在 Flask 应用初始化时创建一个固定长度的队列
 MAX_QUEUE_LENGTH = 3  # 假设队列长度为5
@@ -41,6 +38,9 @@ def process_frame():
     image_data = request.json.get('image_data')
     jumpORnot=request.json.get('jumpORnot')
     flip=(request.json.get('imgFlip')=='true')
+    uuid=request.json.get('uuid')
+
+
     try:
         decoded_data = base64.b64decode(image_data.split(',')[1])
         np_data = np.frombuffer(decoded_data, np.uint8)
@@ -49,23 +49,34 @@ def process_frame():
         print("Error processing frame:", e)
         # 返回错误图片的 Base64 编码数据
         return Response(response=error_image_base64, status=500, mimetype='text/plain')
-    
+    if uuid not in allDataList.keys():
+        allDataList[uuid] = allDataList.setdefault(uuid, {
+            'preBallStack':[],
+            'shooting_balls_line':[],
+            'ball_cxy':[],
+            'ball_thickness':[],
+            'jump':0,
+            'wait_frame':0,
+            'frame_idx':0,
+            'shooting_count':0,
+            'score_count':0,
+            'ball_state':'normal',
+            'transparent_layer':np.zeros_like(frame, dtype=np.uint8),
+            'score_layer':np.zeros_like(frame, dtype=np.uint8),
+            'frame_queue':deque(maxlen=MAX_QUEUE_LENGTH),
+            'all_frame':[]
+        })
+    data=allDataList[uuid]
+
     if flip:
         frame = cv2.flip(frame, 1)
 
     # 将处理后的图像加入队列
-    frame_queue.append(frame)
-    newest_frame = frame_queue[-1]
+    data['frame_queue'].append(frame)
+    newest_frame = data['frame_queue'][-1]
+    newest_frame=yolo_process(model,data,newest_frame,jumpORnot,conf=0.75)
 
-
-    global i,preBallStack,rim_t_ls,wait_frame
-    # 仅处理队列中的最新帧
-    if jumpORnot:
-        newest_frame,preBallStack,rim_t_ls=predict(model,newest_frame,preBallStack)
-    
-    score,newest_frame,wait_frame=judge_shoot(preBallStack,newest_frame,preBallStack,rim_t_ls,wait_frame)
-
-    all_frame.append(newest_frame)
+    data['all_frame'].append(newest_frame)
     _, buffer = cv2.imencode('.jpg', newest_frame)
     processed_data = base64.b64encode(buffer).decode('utf-8')
 
@@ -78,34 +89,37 @@ def process_frame():
 def upload():
     width=int(request.form.get('imgWidth'))
     height=int(request.form.get('imgHeight'))
-    print(width,height)
     isFromCamera=request.form.get('isFromCamera')
+    uuid=request.form.get('uuid')
+
     if os.path.exists('output.mp4'):
         os.remove('output.mp4')
+    if uuid in allDataList:
+        data=allDataList[uuid]
         
-    # Compile frames into a video
-    out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 30, (width, height))
+        # Compile frames into a video
+        out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 30, (width, height))
+        for frame in data['all_frame']:
+            out.write(frame)
+        out.release()
+        print("帧数为：",len(data['all_frame']))
 
-    for frame in all_frame:
-        out.write(frame)
-
-    out.release()
-    
-    print("帧数为：",len(all_frame))
-    all_frame.clear()
-
-    if isFromCamera=='true' and 'audio' in request.files:
-        audio_file = request.files['audio']
-        audio_file.save('temp.wav')
-        sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'temp.wav', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4'])
-        os.remove('temp.wav')
-    elif isFromCamera=='false':
-        sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'audiotemp.mp4', '-map', '0:v','-map', '1:a','-c:v', 'copy', '-c:a', 'copy', 'output.mp4'])
-        # os.remove('audiotemp.mp4')
+        if isFromCamera=='true' and 'audio' in request.files:
+            audio_file = request.files['audio']
+            audio_file.save('temp.wav')
+            sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'temp.wav', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4'])
+            os.remove('temp.wav')
+        elif isFromCamera=='false':
+            sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'audiotemp.mp4', '-map', '0:v','-map', '1:a','-c:v', 'copy', '-c:a', 'copy', 'output.mp4'])
+            # os.remove('audiotemp.mp4')
+        else:
+            return 'No file part', 400
+        del allDataList[uuid]
+        # os.remove('temp.mp4')
+        return send_file('output.mp4', as_attachment=True)
     else:
-        return 'No file part', 400
-    # os.remove('temp.mp4')
-    return send_file('output.mp4', as_attachment=True)
+        return 'No UUID', 400
+    
 
 
 @app.route('/upload_mp4', methods=['POST'])
