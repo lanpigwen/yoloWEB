@@ -15,14 +15,17 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100vh; /* 固定画布高度为16:9的比例 */
+            height: 100%; /* 固定画布高度为16:9的比例 */
             background-color: black; /* 修改背景色为黑色 */
             overflow: hidden; /* 隐藏视频溢出部分 */
         }
         #resultCanvas {
+            position: fixed;
             width: 100%;
             height: 100%;
+            z-index: 5;
             object-fit: contain;
+            
         }
         #bottomControls {
             padding: 10px; /* 控制栏内边距 */
@@ -34,10 +37,24 @@
             width: 90%; /* 宽度90%，留出一定的边距 */
             background-color: rgba(248, 249, 250, 0.8); /* 使用 rgba() 来定义背景色和透明度 */
             border-radius: 10px; /* 圆角处理，应用于所有四个角 */
+            z-index: 99;
         }
 
         #videoElement {
-            display: none; /* 隐藏视频元素 */
+            /* display: none; */
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 6;
+            object-fit: contain;
+        }
+
+        #resultImg{
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            object-fit: contain;
         }
     </style>
 </head>
@@ -45,14 +62,20 @@
     <div id="topCanvasContainer">
         <!-- 用于结果的画布 -->
         <canvas id="resultCanvas"></canvas>
+        <video id="videoElement" autoplay></video>
+        <img id="resultImg">
     </div>
-    <video id="videoElement" autoplay></video>
+
     <div id="bottomControls" class="container">
         <div class="row">
             <div class="col-md-6">
                 <!-- 用于上传MP4的文件输入 -->
                 <input type="file" id="fileInput" class="form-control mb-3" accept=".mp4">
                 <!-- 文件开始/停止录制按钮 -->
+                <div id="modeButtons" class="mb-3">
+                    <button id="realTimeModeButton" class="btn btn-primary mr-2">实时模式</button>
+                    <button id="postProcessingModeButton" class="btn btn-primary">后处理模式</button>
+                </div>
                 <div class="mb-3">
                     <button id="startButtonFile" class="btn btn-primary mr-2">开始录制</button>
                     <button id="stopButtonFile" class="btn btn-danger" disabled>停止录制</button>
@@ -100,6 +123,7 @@
         let ct1,ct2,ct3;
         let worker = new Worker('static/worker.js');
         let uniqueIdentifier;
+        let points=[];
 
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
@@ -115,7 +139,11 @@
         const topCanvasContainer = document.getElementById('topCanvasContainer');
         const bottomControls = document.getElementById('bottomControls');
         const blobURLPattern = /blob:(.*\/)([a-zA-Z0-9\-]+)$/; // 更精确的正则表达式
-
+        const imgElement=document.getElementById('resultImg');
+        const realTimeModeButton=document.getElementById('realTimeModeButton');
+        const postProcessingModeButton=document.getElementById('postProcessingModeButton');
+        let tempCanvas=document.createElement("canvas");
+        let tempContext=tempCanvas.getContext("2d");
         let timer; // 用于存储定时器引用
 
         startButtonFile.addEventListener('click',async () =>{
@@ -159,12 +187,13 @@
         })
         function EveryFrame(){
             let ct0=Date.now();
-            while(ct0-lastFrame<33){
+            let ct00=Date.now();
+            while(ct0-lastFrame<(1000/30)){
                 ct0=Date.now();
             }
             ct1=ct0-lastFrame;
-            console.log('frame gap',ct1,"cap",ct2,"send",ct3);
             lastFrame=Date.now();
+            console.log('frame gap',ct1,"cap",ct2,"send",ct3,"wait",lastFrame-ct00);
             const {imageData,imageWidth,imageHeight} = captureFrame(video);
             ct2=Date.now()-lastFrame;
             temp=Date.now();
@@ -218,6 +247,7 @@
             audio_mediaRecorder = new MediaRecorder(audioStream);
             audio_mediaRecorder.addEventListener('dataavailable', event => {
                 audioChunks.push(event.data);
+                console.log("这",event.data);
             });
             audio_mediaRecorder.addEventListener('stop', async () => {
                 const blob = new Blob(audioChunks, { type: 'audio/wav' });
@@ -226,7 +256,7 @@
                 formData.append('isFromCamera',true);
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
-                console.log("upload",resultCanvas.width,resultCanvas.height)
+                formData.append('uuid',uniqueIdentifier);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -247,10 +277,8 @@
             clearTimeout(dingshi);
             videoStream.getTracks().forEach(track => track.stop());
             audioStream.getTracks().forEach(track => track.stop());
-
             startButton.disabled = false;
             stopButton.disabled = true;
-
         });
 
         jumpFrame.addEventListener("click", () => {
@@ -258,10 +286,10 @@
             jumptext.innerText=jump;
 
         });   
-        // 获取视频帧并转换为 base64 编码的图像数据
+
         function captureFrame(video) {
             frameCount++;
-            const canvas = document.createElement("canvas");
+            // const canvas = document.createElement("canvas");
             const maxWidth = 640;
             const maxHeight = 640;
             width = video.videoWidth;
@@ -270,6 +298,7 @@
                 resultCanvas.width=width;
                 resultCanvas.height=height;
                 resetCanvasSize=0;
+
             }
 
             // 如果视频的宽度或高度大于最大宽度或高度，进行等比例缩放
@@ -288,19 +317,19 @@
             //得是偶数
             width=width-width%2
             height=height-height%2
-            canvas.width = width;
-            canvas.height = height;
-            // console.log(width,height);
-            const context = canvas.getContext("2d");
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            let data=canvas.toDataURL("image/jpeg");
+
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+
+            tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height); 
+            let data=tempCanvas.toDataURL("image/jpeg");
             return {
                 imageData:data,
                 imageWidth:width,
                 imageHeight:height
             }
         }
+
       // 发送数据到服务器
         function sendData(imageData,imageWidth,imageHeight,flipFrame) {
         if(jump){
@@ -323,23 +352,31 @@
             uuid:uniqueIdentifier
         }),
         })
-          .then((response) => response.text())
+          .then((response) => response.json())
           .then((data) => {
             if(resultCanvas.width==0 || resultCanvas.height==0){
                 resultCanvas.width=video.videoWidth;
                 resultCanvas.height=video.videoHeight;
             }
+            if(video.style.zIndex<imgElement.style.zIndex || video.style.zIndex<resultCanvas.style.zIndex){
                 // 渲染服务器处理后的图像到 canvas 上
-                const img = new Image();
-                img.onload = function() {
-                    // 清除之前的渲染
-                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-                    // 将图像渲染到 canvas 上
-                    resultContext.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
-                    // console.log(resultCanvas.width, resultCanvas.height);
+                // const img = new Image();
+                // img.onload = function() {
+                //     // 清除之前的渲染
+                //     resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                //     // 将图像渲染到 canvas 上
+                //     resultContext.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
+                //     // resultContext.drawImage(img, 0, 0);
+
+                //     // console.log(resultCanvas.width, resultCanvas.height);
                     
-                };
-                img.src = "data:image/jpeg;base64," + data;
+                // };
+                // img.src = "data:image/jpeg;base64," + data.image_data;
+                let ct0=Date.now();
+                imgElement.src = "data:image/jpeg;base64," + data.image_data;
+                console.log(Date.now()-ct0);
+            }
+
             })
           .catch((error) => {
             console.error("Error sending data to server: ", error);
@@ -355,6 +392,8 @@
         // 点击 #topCanvasContainer 时触发的函数
         topCanvasContainer.addEventListener('click', () => {
             // 显示 #bottomControls
+
+
             if (bottomControls.style.display==='block'){
                 bottomControls.style.display='none';
             }
@@ -369,8 +408,263 @@
                     bottomControls.style.display = 'none';
                 }, 3000);
             }
+                // 获取点击位置的坐标
+                const rect = resultCanvas.getBoundingClientRect();
+                let realVideo={};
+                if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+                    realVideo.height=rect.height;
+                    realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+                }
+                else{
+                    realVideo.width=rect.width;
+                    realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+                }
+                realVideo.left=(rect.width-realVideo.width)*0.5;
+                realVideo.top=(rect.height-realVideo.height)*0.5;
+                let scale=resultCanvas.width/realVideo.width;
+                let x = (event.clientX - realVideo.left)*scale;
+                let y = (event.clientY - realVideo.top)*scale;
+
+                if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
+                    // 在 Canvas 上绘制红色实心圆圈
+                    resultContext.beginPath();
+                    resultContext.arc(x, y, 60, 0, 2 * Math.PI);
+                    resultContext.fillStyle = 'red';
+                    resultContext.fill();
+                    // console.log(x,y);
+                    points.push([x,y]);
+                    console.log(points);
+                    
+                }
+        });
+        
+        // video.addEventListener('click', () => {
+        //     // 显示 #bottomControls
+
+
+        //     if (bottomControls.style.display==='block'){
+        //         bottomControls.style.display='none';
+        //     }
+        //     else{
+        //         bottomControls.style.display = 'block';
+        //                     // 如果之前已经设置了定时器，则清除之前的定时器
+        //         if (timer) {
+        //             clearTimeout(timer);
+        //         }
+        //         // 设置一个定时器，在 6 秒后隐藏 #bottomControls
+        //         timer = setTimeout(() => {
+        //             bottomControls.style.display = 'none';
+        //         }, 3000);
+        //     }
+        //         // 获取点击位置的坐标
+        //         const rect = resultCanvas.getBoundingClientRect();
+        //         let realVideo={};
+        //         if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+        //             realVideo.height=rect.height;
+        //             realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+        //         }
+        //         else{
+        //             realVideo.width=rect.width;
+        //             realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+        //         }
+        //         realVideo.left=(rect.width-realVideo.width)*0.5;
+        //         realVideo.top=(rect.height-realVideo.height)*0.5;
+        //         let scale=resultCanvas.width/realVideo.width;
+        //         let x = (event.clientX - realVideo.left)*scale;
+        //         let y = (event.clientY - realVideo.top)*scale;
+
+        //         if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
+        //             // 在 Canvas 上绘制红色实心圆圈
+        //             resultContext.beginPath();
+        //             resultContext.arc(x, y, 60, 0, 2 * Math.PI);
+        //             resultContext.fillStyle = 'red';
+        //             resultContext.fill();
+        //             // console.log(x,y);
+        //             points.push([x,y]);
+        //             console.log(points);
+                    
+        //         }
+        // });
+        
+        imgElement.addEventListener('click', () => {
+            // 显示 #bottomControls
+
+
+            if (bottomControls.style.display==='block'){
+                bottomControls.style.display='none';
+            }
+            else{
+                bottomControls.style.display = 'block';
+                            // 如果之前已经设置了定时器，则清除之前的定时器
+                if (timer) {
+                    clearTimeout(timer);
+                }
+                // 设置一个定时器，在 6 秒后隐藏 #bottomControls
+                timer = setTimeout(() => {
+                    bottomControls.style.display = 'none';
+                }, 3000);
+            }
+                // 获取点击位置的坐标
+                const rect = resultCanvas.getBoundingClientRect();
+                let realVideo={};
+                if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+                    realVideo.height=rect.height;
+                    realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+                }
+                else{
+                    realVideo.width=rect.width;
+                    realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+                }
+                realVideo.left=(rect.width-realVideo.width)*0.5;
+                realVideo.top=(rect.height-realVideo.height)*0.5;
+                let scale=resultCanvas.width/realVideo.width;
+                let x = (event.clientX - realVideo.left)*scale;
+                let y = (event.clientY - realVideo.top)*scale;
+
+                if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
+                    // 在 Canvas 上绘制红色实心圆圈
+                    resultContext.beginPath();
+                    resultContext.arc(x, y, 60, 0, 2 * Math.PI);
+                    resultContext.fillStyle = 'red';
+                    resultContext.fill();
+                    // console.log(x,y);
+                    points.push([x,y]);
+                    console.log(points);
+                    
+                }
         });
 
+        // resultCanvas.addEventListener('click', () => {
+        //     // 显示 #bottomControls
+
+
+        //     if (bottomControls.style.display==='block'){
+        //         bottomControls.style.display='none';
+        //     }
+        //     else{
+        //         bottomControls.style.display = 'block';
+        //                     // 如果之前已经设置了定时器，则清除之前的定时器
+        //         if (timer) {
+        //             clearTimeout(timer);
+        //         }
+        //         // 设置一个定时器，在 6 秒后隐藏 #bottomControls
+        //         timer = setTimeout(() => {
+        //             bottomControls.style.display = 'none';
+        //         }, 3000);
+        //     }
+        //         // 获取点击位置的坐标
+        //         const rect = resultCanvas.getBoundingClientRect();
+        //         let realVideo={};
+        //         if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+        //             realVideo.height=rect.height;
+        //             realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+        //         }
+        //         else{
+        //             realVideo.width=rect.width;
+        //             realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+        //         }
+        //         realVideo.left=(rect.width-realVideo.width)*0.5;
+        //         realVideo.top=(rect.height-realVideo.height)*0.5;
+        //         let scale=resultCanvas.width/realVideo.width;
+        //         let x = (event.clientX - realVideo.left)*scale;
+        //         let y = (event.clientY - realVideo.top)*scale;
+
+        //         if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
+        //             // 在 Canvas 上绘制红色实心圆圈
+        //             resultContext.beginPath();
+        //             resultContext.arc(x, y, 60, 0, 2 * Math.PI);
+        //             resultContext.fillStyle = 'red';
+        //             resultContext.fill();
+        //             // console.log(x,y);
+        //             points.push([x,y]);
+        //             console.log(points);
+                    
+        //         }
+        // });
+
+        realTimeModeButton.addEventListener('click',() =>{
+            video.style.zIndex="5";
+            resultCanvas.style.zIndex="6";
+            imgElement.style.zIndex="6";
+        })
+        postProcessingModeButton.addEventListener('click',() =>{
+            video.style.zIndex="6";
+            resultCanvas.style.zIndex="5";
+            imgElement.style.zIndex="5";
+
+        })
     </script>
 </body>
 </html>
+
+
+<!-- [
+    [
+        371.01690447423226,
+        460.6779363161549
+    ],
+    [
+        222.28810053110277,
+        464.49149539161976
+    ],
+    [
+        967.4575438769361,
+        417.9660746709485
+    ],
+    [
+        251.2711495046357,
+        466.01691902180573
+    ],
+    [
+        1032.2880481598388,
+        411.10166833511175
+    ],
+    [
+        1030.7626245296528,
+        399.66099110871716
+    ],
+    [
+        1023.1355063787231,
+        276.86438887874874
+    ],
+    [
+        270.33894488196,
+        228.8135445278915
+    ],
+    [
+        1019.3219473032582,
+        233.38981541844933
+    ],
+    [
+        399.99995344776517,
+        433.2203109728079
+    ],
+    [
+        211.61013511980119,
+        231.8643917882634
+    ],
+    [
+        1004.0677110013987,
+        271.5254061730979
+    ],
+    [
+        1004.0677110013987,
+        398.13556747853124
+    ],
+    [
+        1017.7965236730722,
+        214.32202004112506
+    ],
+    [
+        261.9491149159373,
+        422.5423455615063
+    ],
+    [
+        188.72878066701202,
+        248.64405172030877
+    ],
+    [
+        1129.1524486766461,
+        422.5423455615063
+    ]
+] -->

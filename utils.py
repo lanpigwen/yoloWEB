@@ -151,9 +151,15 @@ def draw_keypoints(frame,results):
     edp=[[6,12,11,5],[2,4,1,3],[14,16,13,15],[8,10,7,9]]
     color=[(0,100,200),(200,100,0),(100,0,200),(200,0,100)]
     keypoints=results[0].keypoints.xy
+    # ee=results[0].keypoints
+    n_keypoints=[]
     if keypoints.numel() == 0:
         # 判断该tensor是否空
-        return frame
+        return frame,n_keypoints
+    for kpt in results[0].keypoints.xyn:
+        is_all_zero = torch.all(kpt == 0.0).item()
+        if is_all_zero==False:
+            n_keypoints.append(kpt.tolist())
     for kpt in keypoints:
         # kpt 为检测到的某一个人的17个keypoint xy
         for i,st in enumerate(stp):
@@ -164,7 +170,7 @@ def draw_keypoints(frame,results):
                 edx,edy=int(kpt[end][0].item()),int(kpt[end][1].item())
                 if stx*sty*edx*edy!=0:
                     cv2.line(frame,(stx,sty),(edx,edy),color[i],3,cv2.LINE_AA)
-    return frame
+    return frame,n_keypoints
 
 def draw_ball(frame, ball, clsNames, tsize1=1, tsize2=1, recsize=1, rec_color=(0, 100, 255), text_color=(255, 255, 255), show_rec=True, show_text=True):
     if ball is None:

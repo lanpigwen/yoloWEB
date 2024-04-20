@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, Response,send_file
+from flask import Flask, render_template, request, Response,send_file,jsonify
 import base64
 import numpy as np
 import cv2
@@ -46,7 +46,7 @@ def process_frame():
         np_data = np.frombuffer(decoded_data, np.uint8)
         frame = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
     except Exception as e:
-        print("Error processing frame:", e)
+        print("Error processing frame---------------------------------------------:", e)
         # 返回错误图片的 Base64 编码数据
         return Response(response=error_image_base64, status=500, mimetype='text/plain')
     if uuid not in allDataList.keys():
@@ -64,7 +64,9 @@ def process_frame():
             'transparent_layer':np.zeros_like(frame, dtype=np.uint8),
             'score_layer':np.zeros_like(frame, dtype=np.uint8),
             'frame_queue':deque(maxlen=MAX_QUEUE_LENGTH),
-            'all_frame':[]
+            'all_frame':[],
+            'b_ball':[],
+            'keypoints':[]
         })
     data=allDataList[uuid]
 
@@ -79,9 +81,16 @@ def process_frame():
     data['all_frame'].append(newest_frame)
     _, buffer = cv2.imencode('.jpg', newest_frame)
     processed_data = base64.b64encode(buffer).decode('utf-8')
-
+    extra_data = {
+    'ball': data['b_ball'],
+    'coordinates': data['keypoints']
+    }
+    response_data={
+        'image_data': processed_data,  # 之前处理的图像数据
+        'extra_data': extra_data  # 添加的额外信息
+    }
     # 返回处理后的图像数据
-    return Response(response=processed_data, status=200, mimetype='text/plain')
+    return jsonify(response_data)
 
 
 
@@ -91,7 +100,7 @@ def upload():
     height=int(request.form.get('imgHeight'))
     isFromCamera=request.form.get('isFromCamera')
     uuid=request.form.get('uuid')
-
+    # print("upload",50*uuid)
     if os.path.exists('output.mp4'):
         os.remove('output.mp4')
     if uuid in allDataList:
@@ -105,6 +114,7 @@ def upload():
         print("帧数为：",len(data['all_frame']))
 
         if isFromCamera=='true' and 'audio' in request.files:
+            print("aaaaa")
             audio_file = request.files['audio']
             audio_file.save('temp.wav')
             sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'temp.wav', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4'])
@@ -118,6 +128,7 @@ def upload():
         # os.remove('temp.mp4')
         return send_file('output.mp4', as_attachment=True)
     else:
+        print(uuid)
         return 'No UUID', 400
     
 
@@ -131,4 +142,4 @@ def uploadmp4():
     return 'File uploaded successfully.', 200  # 返回成功响应
 
 if __name__ == '__main__':
-    app.run(debug=True)  # 在调试模式下运行 Flask 应用
+     app.run(debug=True)  # 在调试模式下运行 Flask 应用

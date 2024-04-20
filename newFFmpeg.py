@@ -28,12 +28,20 @@ def predict(model,frame,preBallStack,confidence=0.2):
     frame=draw_rim(frame,rim_t_ls,clsNames)
     # frame=draw_ball(frame,preBallStack,clsNames,tsize1=1,tsize2=1,recsize=1,rec_color=(255,0,0),show_text=False)
     frame=draw_ball(frame,[b_ball],clsNames)
-    frame=draw_keypoints(frame,results)
-    return frame,preBallStack,rim_t_ls
+    frame,keypoints=draw_keypoints(frame,results)
+    if b_ball is not None:
+        ball=[b_ball.tolist()]
+        ball[0][0]=float(ball[0][0]/frame.shape[1])
+        ball[0][1]=float(ball[0][1]/frame.shape[0])
+        ball[0][2]=float(ball[0][2]/frame.shape[1])
+        ball[0][3]=float(ball[0][3]/frame.shape[0])
+    else:
+        ball=[]
+    return frame,preBallStack,rim_t_ls,ball,keypoints
 
 def yolo_process(model,data,newest_frame,jumpORnot,conf=0.2):
     if jumpORnot:
-        newest_frame,data['preBallStack'],data['rim_t_ls']=predict(model,newest_frame,data['preBallStack'],confidence=conf)
+        newest_frame,data['preBallStack'],data['rim_t_ls'],data['b_ball'],data['keypoints']=predict(model,newest_frame,data['preBallStack'],confidence=conf)
     
     score,newest_frame,data['wait_frame']=judge_shoot(data['preBallStack'],newest_frame,data['preBallStack'],data['rim_t_ls'],data['wait_frame'])
     data['score_layer'],data['transparent_layer'],data['shooting_balls_line'],data['ball_cxy'],data['ball_thickness'],data['score_count'],data['shooting_count'],data['ball_state']=manage_shoot_score(newest_frame,data['transparent_layer'],data['score_layer'],data['preBallStack'],data['shooting_balls_line'],data['ball_cxy'],data['ball_thickness'],data['rim_t_ls'],score,data['score_count'],data['shooting_count'],data['ball_state'])
@@ -107,7 +115,7 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
                 transparent_layer = np.zeros_like(frame, dtype=np.uint8)
                 score_layer = np.zeros_like(frame, dtype=np.uint8)
                 frame_idx=1
-            frame,preBallStack,rim_t_ls=predict(model,frame,preBallStack)
+            frame,preBallStack,rim_t_ls,b_ball,keypoints=predict(model,frame,preBallStack)
             score,frame,wait_frame=judge_shoot(preBallStack,frame,preBallStack,rim_t_ls,wait_frame)
             score_layer,transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,score_count,shooting_count,ball_state=manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting_balls_line,ball_cxy,ball_thickness,rim_t_ls,score,score_count,shooting_count,ball_state)
 
@@ -307,8 +315,8 @@ if __name__ == '__main__':
                 jump_frame=0,
                 show_fps=True,
                 fit_show_fps=False,
-                isCamera=False,
-                isFront=False
+                isCamera=True,
+                isFront=True
                 )
     t2 = time.time()
     # print(f'耗时{round(t2 - t0,3)}s')
