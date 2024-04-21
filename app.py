@@ -100,6 +100,7 @@ def upload():
     height=int(request.form.get('imgHeight'))
     isFromCamera=request.form.get('isFromCamera')
     uuid=request.form.get('uuid')
+    fps=int(request.form.get('fps'))
     # print("upload",50*uuid)
     if os.path.exists('output.mp4'):
         os.remove('output.mp4')
@@ -107,7 +108,7 @@ def upload():
         data=allDataList[uuid]
         
         # Compile frames into a video
-        out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 30, (width, height))
+        out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
         for frame in data['all_frame']:
             out.write(frame)
         out.release()

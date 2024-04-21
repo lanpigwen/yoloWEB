@@ -56,6 +56,7 @@
             z-index: 5;
             object-fit: contain;
         }
+
     </style>
 </head>
 <body>
@@ -93,6 +94,11 @@
                     <label class="form-check-label" for="jumpFrame">跳转帧</label>
                 </div>
                 <div id="jumptext"></div>
+                <div>
+                    <label for="fpsDelayInput">FPS:</label>
+                    <input type="number" id="fpsDelayInput" value="30">
+                    <button id="updateFpsDelayButton">Update</button>
+                </div>
             </div>
         </div>
     </div>
@@ -145,6 +151,26 @@
         let tempCanvas=document.createElement("canvas");
         let tempContext=tempCanvas.getContext("2d");
         let timer; // 用于存储定时器引用
+        let fps=30;
+
+
+        // 获取元素
+        const fpsDelayInput = document.getElementById('fpsDelayInput');
+        const updateFpsDelayButton = document.getElementById('updateFpsDelayButton');
+
+
+        // 添加点击事件监听器
+        updateFpsDelayButton.addEventListener('click', function() {
+            // 获取输入框中的值并转换为整数
+            const newFpsDelay = parseInt(fpsDelayInput.value);
+            
+            // 更新 fps_delay 变量的值
+            fps = newFpsDelay;
+            
+            // 可以在这里执行任何其他相关的操作
+            console.log('FPS Delay updated to:', fps);
+        });
+
 
         startButtonFile.addEventListener('click',async () =>{
             ct1=0,ct2=0,ct3=0;
@@ -179,16 +205,18 @@
                 formData.append('isFromCamera',false);
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
+                formData.append('fps',fps);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
                 });
                 video.pause();
         })
+
         function EveryFrame(){
             let ct0=Date.now();
             let ct00=Date.now();
-            while(ct0-lastFrame<(1000/30)){
+            while(ct0-lastFrame<(1000/fps)){
                 ct0=Date.now();
             }
             ct1=ct0-lastFrame;
@@ -232,6 +260,7 @@
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier)
+                formData.append('fps',fps);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -257,6 +286,7 @@
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier);
+                formData.append('fps',fps);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -392,8 +422,6 @@
         // 点击 #topCanvasContainer 时触发的函数
         topCanvasContainer.addEventListener('click', () => {
             // 显示 #bottomControls
-
-
             if (bottomControls.style.display==='block'){
                 bottomControls.style.display='none';
             }
@@ -438,158 +466,14 @@
                 }
         });
         
-        // video.addEventListener('click', () => {
-        //     // 显示 #bottomControls
-
-
-        //     if (bottomControls.style.display==='block'){
-        //         bottomControls.style.display='none';
-        //     }
-        //     else{
-        //         bottomControls.style.display = 'block';
-        //                     // 如果之前已经设置了定时器，则清除之前的定时器
-        //         if (timer) {
-        //             clearTimeout(timer);
-        //         }
-        //         // 设置一个定时器，在 6 秒后隐藏 #bottomControls
-        //         timer = setTimeout(() => {
-        //             bottomControls.style.display = 'none';
-        //         }, 3000);
-        //     }
-        //         // 获取点击位置的坐标
-        //         const rect = resultCanvas.getBoundingClientRect();
-        //         let realVideo={};
-        //         if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
-        //             realVideo.height=rect.height;
-        //             realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
-        //         }
-        //         else{
-        //             realVideo.width=rect.width;
-        //             realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
-        //         }
-        //         realVideo.left=(rect.width-realVideo.width)*0.5;
-        //         realVideo.top=(rect.height-realVideo.height)*0.5;
-        //         let scale=resultCanvas.width/realVideo.width;
-        //         let x = (event.clientX - realVideo.left)*scale;
-        //         let y = (event.clientY - realVideo.top)*scale;
-
-        //         if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
-        //             // 在 Canvas 上绘制红色实心圆圈
-        //             resultContext.beginPath();
-        //             resultContext.arc(x, y, 60, 0, 2 * Math.PI);
-        //             resultContext.fillStyle = 'red';
-        //             resultContext.fill();
-        //             // console.log(x,y);
-        //             points.push([x,y]);
-        //             console.log(points);
-                    
-        //         }
-        // });
-        
-        imgElement.addEventListener('click', () => {
-            // 显示 #bottomControls
-
-
-            if (bottomControls.style.display==='block'){
-                bottomControls.style.display='none';
-            }
-            else{
-                bottomControls.style.display = 'block';
-                            // 如果之前已经设置了定时器，则清除之前的定时器
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                // 设置一个定时器，在 6 秒后隐藏 #bottomControls
-                timer = setTimeout(() => {
-                    bottomControls.style.display = 'none';
-                }, 3000);
-            }
-                // 获取点击位置的坐标
-                const rect = resultCanvas.getBoundingClientRect();
-                let realVideo={};
-                if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
-                    realVideo.height=rect.height;
-                    realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
-                }
-                else{
-                    realVideo.width=rect.width;
-                    realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
-                }
-                realVideo.left=(rect.width-realVideo.width)*0.5;
-                realVideo.top=(rect.height-realVideo.height)*0.5;
-                let scale=resultCanvas.width/realVideo.width;
-                let x = (event.clientX - realVideo.left)*scale;
-                let y = (event.clientY - realVideo.top)*scale;
-
-                if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
-                    // 在 Canvas 上绘制红色实心圆圈
-                    resultContext.beginPath();
-                    resultContext.arc(x, y, 60, 0, 2 * Math.PI);
-                    resultContext.fillStyle = 'red';
-                    resultContext.fill();
-                    // console.log(x,y);
-                    points.push([x,y]);
-                    console.log(points);
-                    
-                }
-        });
-
-        // resultCanvas.addEventListener('click', () => {
-        //     // 显示 #bottomControls
-
-
-        //     if (bottomControls.style.display==='block'){
-        //         bottomControls.style.display='none';
-        //     }
-        //     else{
-        //         bottomControls.style.display = 'block';
-        //                     // 如果之前已经设置了定时器，则清除之前的定时器
-        //         if (timer) {
-        //             clearTimeout(timer);
-        //         }
-        //         // 设置一个定时器，在 6 秒后隐藏 #bottomControls
-        //         timer = setTimeout(() => {
-        //             bottomControls.style.display = 'none';
-        //         }, 3000);
-        //     }
-        //         // 获取点击位置的坐标
-        //         const rect = resultCanvas.getBoundingClientRect();
-        //         let realVideo={};
-        //         if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
-        //             realVideo.height=rect.height;
-        //             realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
-        //         }
-        //         else{
-        //             realVideo.width=rect.width;
-        //             realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
-        //         }
-        //         realVideo.left=(rect.width-realVideo.width)*0.5;
-        //         realVideo.top=(rect.height-realVideo.height)*0.5;
-        //         let scale=resultCanvas.width/realVideo.width;
-        //         let x = (event.clientX - realVideo.left)*scale;
-        //         let y = (event.clientY - realVideo.top)*scale;
-
-        //         if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
-        //             // 在 Canvas 上绘制红色实心圆圈
-        //             resultContext.beginPath();
-        //             resultContext.arc(x, y, 60, 0, 2 * Math.PI);
-        //             resultContext.fillStyle = 'red';
-        //             resultContext.fill();
-        //             // console.log(x,y);
-        //             points.push([x,y]);
-        //             console.log(points);
-                    
-        //         }
-        // });
-
         realTimeModeButton.addEventListener('click',() =>{
             video.style.zIndex="5";
-            resultCanvas.style.zIndex="6";
+            resultCanvas.style.zIndex="7";
             imgElement.style.zIndex="6";
         })
         postProcessingModeButton.addEventListener('click',() =>{
             video.style.zIndex="6";
-            resultCanvas.style.zIndex="5";
+            resultCanvas.style.zIndex="7";
             imgElement.style.zIndex="5";
 
         })
