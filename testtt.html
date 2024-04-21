@@ -3,556 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Recorder</title>
-    <!-- 引入 Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-
-        /* 自定义CSS可以在此处添加 */
-        /* 可以进行与页面布局相匹配的调整 */
-        #topCanvasContainer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%; /* 固定画布高度为16:9的比例 */
-            background-color: black; /* 修改背景色为黑色 */
-            overflow: hidden; /* 隐藏视频溢出部分 */
-            /* z-index: 1; */
-        }
-        #resultCanvas {
-            /* position: fixed; */
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            /* opacity: 0.5; */
-            /* z-index: 3; */
-        }
-        #bottomControls {
-            padding: 10px; /* 控制栏内边距 */
-            border-top: 1px solid #dee2e6; /* 控制栏上边框 */
-            position: fixed; /* 绝对定位 */
-            bottom: 20px; /* 底部对齐，并留出一定的间距 */
-            left: 50%; /* 左侧居中 */
-            transform: translateX(-50%); /* 通过 transform 属性水平居中 */
-            width: 90%; /* 宽度90%，留出一定的边距 */
-            background-color: rgba(248, 249, 250, 0.8); /* 使用 rgba() 来定义背景色和透明度 */
-            border-radius: 10px; /* 圆角处理，应用于所有四个角 */
-            /* z-index: 4; */
-        }
-
-        #videoElement {
-            display: none;
-            /* position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%; 
-            z-index: 1; */
-        }
-    </style>
+    <title>Video Frame Capture</title>
 </head>
 <body>
-    <div id="topCanvasContainer">
-        <!-- 用于结果的画布 -->
-        <canvas id="resultCanvas"></canvas>
-        <!-- <video id="videoElement" autoplay></video> -->
-    </div>
-    <video id="videoElement" autoplay></video>
-
-    <div id="bottomControls" class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <!-- 用于上传MP4的文件输入 -->
-                <input type="file" id="fileInput" class="form-control mb-3" accept=".mp4">
-                <!-- 文件开始/停止录制按钮 -->
-                <div class="mb-3">
-                    <button id="startButtonFile" class="btn btn-primary mr-2">开始录制</button>
-                    <button id="stopButtonFile" class="btn btn-danger" disabled>停止录制</button>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <!-- 开始/停止录制按钮 -->
-                <div class="mt-3">
-                    <button id="startButton" class="btn btn-primary mr-2">开始录制</button>
-                    <button id="stopButton" class="btn btn-danger" disabled>停止录制</button>
-                </div>
-                <!-- 跳转帧按钮 -->
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="jumpFrame">
-                    <label class="form-check-label" for="jumpFrame">跳转帧</label>
-                </div>
-                <div id="jumptext"></div>
-            </div>
-        </div>
-    </div>
-
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <video id="video" autoplay></video>
+    <canvas id="canvas" width="640" height="640" ></canvas>
     <script>
-        // 你的JavaScript代码放在这里
-        let videoStream;
-        let audioStream;
-        let audio_mediaRecorder;
-        let mediaSource;
-        let sourceBuffer;
-        // let vidio_mediaRecorder;
-        let dingshi;
-        let jump=false;
-        let jpcount=0;
-        let audioChunks = [];
-        let audioContext;
-        let mediaRecorder;
-        let width;
-        let height;
-        let resetCanvasSize=1;
-        let all_frame=[];
-        let frameCount=0;
-        let originTime=Date.now();
-        let lastFrame=Date.now();
-        let ct1,ct2,ct3;
-        let worker = new Worker('static/worker.js');
-        let uniqueIdentifier;
-        let points=[];
-        let ball=[];
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let imageCapture;
 
-        const startButton = document.getElementById('startButton');
-        const stopButton = document.getElementById('stopButton');
-        const startButtonFile = document.getElementById('startButtonFile');
-        const stopButtonFile= document.getElementById('stopButtonFile');
-        const resultCanvas = document.getElementById("resultCanvas");
-        const resultContext = resultCanvas.getContext("2d");
-        const video = document.getElementById("videoElement");
-        const jumpFrame = document.getElementById("jumpFrame");
-        const jumptext=document.getElementById("jumptext");
-
-        let fileInput = document.getElementById('fileInput');
-        const topCanvasContainer = document.getElementById('topCanvasContainer');
-        const bottomControls = document.getElementById('bottomControls');
-        const blobURLPattern = /blob:(.*\/)([a-zA-Z0-9\-]+)$/; // 更精确的正则表达式
-
-        let timer; // 用于存储定时器引用
-
-        startButtonFile.addEventListener('click',async () =>{
-            ct1=0,ct2=0,ct3=0;
-            capCost=0;
-            frameCount=0;
-            resetCanvasSize=1;
-            let file = fileInput.files[0];
-            let videoURL = URL.createObjectURL(file);
-            video.src = videoURL;
-
-            const formData = new FormData();
-            formData.append('mp4File', file);
-
-            try {
-                const response = await fetch('/upload_mp4', {
-                    method: 'POST',
-                    body: formData
-                });
-            } catch (error) {
-                console.error('Error uploading file:', error);
-                alert('Error uploading file.');
-            }
-            startButtonFile.disabled = true;
-            stopButtonFile.disabled = false;
-        })
-        stopButtonFile.addEventListener('click',async () =>{
-            clearInterval(dingshi); // 停止发送帧数据
-            startButtonFile.disabled = false; // 启用开始录制按钮
-            stopButtonFile.disabled = true; // 禁用停止录制按钮
-            const formData = new FormData();
-                // formData.append('audio', blob, 'audio.wav');
-                formData.append('isFromCamera',false);
-                formData.append('imgWidth',width);
-                formData.append('imgHeight',height);
-                await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                video.pause();
-        })
-        function EveryFrame(){
-            let ct0=Date.now();
-            while(ct0-lastFrame<33){
-                ct0=Date.now();
-            }
-            ct1=ct0-lastFrame;
-            console.log('frame gap',ct1,"cap",ct2,"send",ct3);
-            lastFrame=Date.now();
-            const {imageData,imageWidth,imageHeight} = captureFrame(video);
-            ct2=Date.now()-lastFrame;
-            temp=Date.now();
-            // all_frame.push(imageData);
-            sendData(imageData,imageWidth,imageHeight,false);
-            ct3=Date.now()-temp;
-            
-            dingshi=setTimeout(EveryFrame,0);
-        }
-
-        video.addEventListener('play',() =>{
-            let match = blobURLPattern.exec(video.src);
-            if (match) {
-                 uniqueIdentifier = match[2];
-                console.log(uniqueIdentifier); // 这里就是提取到的唯一标识符
-            } else {
-                uniqueIdentifier = Math.random().toString(36).substr(2, 9);
-                console.error('Failed to extract unique identifier from video src.');
-                console.log(uniqueIdentifier)
-            }
-            originTime=Date.now();
-            EveryFrame();
-            bottomControls.style.display = 'none';
-
-        })
-
-        video.addEventListener('ended', async () => {
-            bottomControls.style.display = 'block';
-            console.log('all frame',frameCount,Date.now()-originTime);
-            clearTimeout(dingshi);
-            startButtonFile.disabled = false; // 启用开始录制按钮
-            stopButtonFile.disabled = true; // 禁用停止录制按钮
-            const formData = new FormData();
-                // formData.append('audio', blob, 'audio.wav');
-                formData.append('isFromCamera',false);
-                formData.append('imgWidth',width);
-                formData.append('imgHeight',height);
-                formData.append('uuid',uniqueIdentifier)
-                await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-        });
-
-        startButton.addEventListener('click', async () => {
-            resetCanvasSize=1;
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            video.srcObject = videoStream;
-
-            audio_mediaRecorder = new MediaRecorder(audioStream);
-            audio_mediaRecorder.addEventListener('dataavailable', event => {
-                audioChunks.push(event.data);
-            });
-            audio_mediaRecorder.addEventListener('stop', async () => {
-                const blob = new Blob(audioChunks, { type: 'audio/wav' });
-                const formData = new FormData();
-                formData.append('audio', blob, 'audio.wav');
-                formData.append('isFromCamera',true);
-                formData.append('imgWidth',width);
-                formData.append('imgHeight',height);
-                console.log("upload",resultCanvas.width,resultCanvas.height)
-                await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                //一定要清空！！！
-                audioChunks=[];
-            });
-
-            audio_mediaRecorder.start();
-
-            startButton.disabled = true;
-            stopButton.disabled = false;
-
-        });
-
-        stopButton.addEventListener('click', () => {
-            audio_mediaRecorder.stop();
-            clearTimeout(dingshi);
-            videoStream.getTracks().forEach(track => track.stop());
-            audioStream.getTracks().forEach(track => track.stop());
-
-            startButton.disabled = false;
-            stopButton.disabled = true;
-
-        });
-
-        jumpFrame.addEventListener("click", () => {
-            jump=!jump;
-            jumptext.innerText=jump;
-
-        });   
-        // 获取视频帧并转换为 base64 编码的图像数据
-        function captureFrame(video) {
-            frameCount++;
-            const canvas = document.createElement("canvas");
-            const maxWidth = 640;
-            const maxHeight = 640;
-            width = video.videoWidth;
-            height = video.videoHeight;
-            if(resetCanvasSize){
-                resultCanvas.width=width;
-                resultCanvas.height=height;
-                resetCanvasSize=0;
-            }
-
-            // 如果视频的宽度或高度大于最大宽度或高度，进行等比例缩放
-            if (width > maxWidth || height > maxHeight) {
-                const aspectRatio = width / height;
-                if (aspectRatio > 1) {
-                    // 宽度大于高度，按照宽度进行缩放
-                    width = maxWidth;
-                    height = maxWidth / aspectRatio;
-                } else {
-                    // 高度大于宽度，按照高度进行缩放
-                    height = maxHeight;
-                    width = maxHeight * aspectRatio;
-                }
-            }
-            //得是偶数
-            width=width-width%2
-            height=height-height%2
-            canvas.width = width;
-            canvas.height = height;
-            // console.log(width,height);
-            const context = canvas.getContext("2d");
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            let data=canvas.toDataURL("image/jpeg");
-            return {
-                imageData:data,
-                imageWidth:width,
-                imageHeight:height
-            }
-        }
-      // 发送数据到服务器
-        function sendData(imageData,imageWidth,imageHeight,flipFrame) {
-        if(jump){
-            jpcount++;
-        }
-        else{
-            jpcount=1;
-        }
-        fetch("/process_frame", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ 
-            image_data: imageData,
-            jumpORnot:jpcount%2,
-            imgWidth:imageWidth,
-            imgHeight:imageHeight,
-            imgFlip:flipFrame,
-            uuid:uniqueIdentifier
-        }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            const imageData=data.image_data;
-            const extraData=data.extra_data;
-            ball=extraData.ball;
-
-            if(resultCanvas.width==0 || resultCanvas.height==0){
-                resultCanvas.width=video.videoWidth;
-                resultCanvas.height=video.videoHeight;
-            }
-                // 渲染服务器处理后的图像到 canvas 上
-                const img = new Image();
-                img.onload = function() {
-                    // 清除之前的渲染
-                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-                    // 将图像渲染到 canvas 上
-                    resultContext.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
-                    // resultContext.drawImage(img, 0, 0);
-
-                    // console.log(resultCanvas.width, resultCanvas.height);
-                    
+        // 获取视频流
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
+                    captureFrame();
                 };
-                img.src = "data:image/jpeg;base64," + imageData;
-                    // if(ball.length==1){
-                    //     let cx,cy;
-                    //     cx=resultCanvas.width*(ball[0][0]+ball[0][2])/2.0;
-                    //     cy=resultCanvas.height*(ball[0][1]+ball[0][3])/2.0;
-                    //     // resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-                    //     resultContext.beginPath();
-                    //         resultContext.arc(cx, cy, 60, 0, 2 * Math.PI);
-                    //         resultContext.fillStyle = 'red';
-                    //         resultContext.fill();
-                    //         // console.log(cx,cy);
-                    // }
             })
-          .catch((error) => {
-            console.error("Error sending data to server: ", error);
-            // alert("An error occurred while processing the frame. Please try again later.");
-          });
-      }
-
-        bottomControls.addEventListener('click',()=>{
-            if (timer) {
-                    clearTimeout(timer);
-                }
-        })
-        // 点击 #topCanvasContainer 时触发的函数
-        // topCanvasContainer.addEventListener('click', () => {
-        //     // 显示 #bottomControls
+            .catch(error => console.error('Error accessing media devices:', error));
 
 
-        //     if (bottomControls.style.display==='block'){
-        //         bottomControls.style.display='none';
-        //     }
-        //     else{
-        //         bottomControls.style.display = 'block';
-        //                     // 如果之前已经设置了定时器，则清除之前的定时器
-        //         if (timer) {
-        //             clearTimeout(timer);
-        //         }
-        //         // 设置一个定时器，在 6 秒后隐藏 #bottomControls
-        //         timer = setTimeout(() => {
-        //             bottomControls.style.display = 'none';
-        //         }, 3000);
-        //     }
-        //         // 获取点击位置的坐标
-        //         const rect = resultCanvas.getBoundingClientRect();
-        //         let realVideo={};
-        //         if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
-        //             realVideo.height=rect.height;
-        //             realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
-        //         }
-        //         else{
-        //             realVideo.width=rect.width;
-        //             realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
-        //         }
-        //         realVideo.left=(rect.width-realVideo.width)*0.5;
-        //         realVideo.top=(rect.height-realVideo.height)*0.5;
-        //         let scale=resultCanvas.width/realVideo.width;
-        //         let x = (event.clientX - realVideo.left)*scale;
-        //         let y = (event.clientY - realVideo.top)*scale;
-
-        //         if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
-        //             // 在 Canvas 上绘制红色实心圆圈
-        //             resultContext.beginPath();
-        //             resultContext.arc(x, y, 60, 0, 2 * Math.PI);
-        //             resultContext.fillStyle = 'red';
-        //             resultContext.fill();
-        //             console.log(x,y);
-        //             points.push([x,y]);
-        //             console.log(points);
-                    
-        //         }
-        // });
-
-        resultCanvas.addEventListener('click', () => {
-            // 显示 #bottomControls
-
-
-            if (bottomControls.style.display==='block'){
-                bottomControls.style.display='none';
-            }
-            else{
-                bottomControls.style.display = 'block';
-                            // 如果之前已经设置了定时器，则清除之前的定时器
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                // 设置一个定时器，在 6 秒后隐藏 #bottomControls
-                timer = setTimeout(() => {
-                    bottomControls.style.display = 'none';
-                }, 3000);
-            }
-                // 获取点击位置的坐标
-                const rect = resultCanvas.getBoundingClientRect();
-                let realVideo={};
-                if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
-                    realVideo.height=rect.height;
-                    realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+            
+            function sendData(imageData,imageWidth,imageHeight,flipFrame) {
+                if(jump){
+                    jpcount++;
                 }
                 else{
-                    realVideo.width=rect.width;
-                    realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+                    jpcount=1;
                 }
-                realVideo.left=(rect.width-realVideo.width)*0.5;
-                realVideo.top=(rect.height-realVideo.height)*0.5;
-                let scale=resultCanvas.width/realVideo.width;
-                let x = (event.clientX - realVideo.left)*scale;
-                let y = (event.clientY - realVideo.top)*scale;
+                fetch("/process_frame", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    image_data: imageData.toDataURL("image/jpeg"),
+                    jumpORnot:jpcount%2,
+                    imgWidth:imageWidth,
+                    imgHeight:imageHeight,
+                    imgFlip:flipFrame,
+                    uuid:uniqueIdentifier
+                }),
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if(resultCanvas.width==0 || resultCanvas.height==0){
+                        resultCanvas.width=video.videoWidth;
+                        resultCanvas.height=video.videoHeight;
+                    }
+                    if(video.style.zIndex<imgElement.style.zIndex || video.style.zIndex<resultCanvas.style.zIndex){
 
-                if (x<=resultCanvas.width && y<=x<=resultCanvas.height && x*y>0){
-                    // 在 Canvas 上绘制红色实心圆圈
-                    resultContext.beginPath();
-                    resultContext.arc(x, y, 60, 0, 2 * Math.PI);
-                    resultContext.fillStyle = 'red';
-                    resultContext.fill();
-                    console.log(x,y);
-                    points.push([x,y]);
-                    console.log(points);
-                    
-                }
-        });
+                        let ct0=Date.now();
+                        imgElement.src = "data:image/jpeg;base64," + data.image_data;
+                        console.log(Date.now()-ct0);
+                    }
 
+                    })
+                .catch((error) => {
+                    console.error("Error sending data to server: ", error);
+                    // alert("An error occurred while processing the frame. Please try again later.");
+                });
+            }
+
+        function captureFrame() {
+            // 从视频流中捕获一帧图像
+            imageCapture.grabFrame()
+                .then(imageBitmap => {
+                    // 在 canvas 上绘制图像
+                    let ct0=Date.now();
+                    ctx.drawImage(imageBitmap, 0, 0, canvas.width, canvas.height);
+                    let ct1=Date.now();
+                    // 将图像数据提取为数据 URL
+                    const imageDataUrl = canvas.toDataURL('image/jpeg');
+                    console.log("draw",ct1-ct0,"toUrl",Date.now()-ct1);
+                    // 现在你可以处理 imageDataUrl，例如将其发送到服务器或在页面上显示
+                    // console.log('Captured frame:', imageDataUrl);
+
+                    // 继续捕获下一帧
+                    requestAnimationFrame(captureFrame);
+                })
+                .catch(error => console.error('Error capturing frame:', error));
+        }
     </script>
 </body>
 </html>
-
-
-<!-- [
-    [
-        371.01690447423226,
-        460.6779363161549
-    ],
-    [
-        222.28810053110277,
-        464.49149539161976
-    ],
-    [
-        967.4575438769361,
-        417.9660746709485
-    ],
-    [
-        251.2711495046357,
-        466.01691902180573
-    ],
-    [
-        1032.2880481598388,
-        411.10166833511175
-    ],
-    [
-        1030.7626245296528,
-        399.66099110871716
-    ],
-    [
-        1023.1355063787231,
-        276.86438887874874
-    ],
-    [
-        270.33894488196,
-        228.8135445278915
-    ],
-    [
-        1019.3219473032582,
-        233.38981541844933
-    ],
-    [
-        399.99995344776517,
-        433.2203109728079
-    ],
-    [
-        211.61013511980119,
-        231.8643917882634
-    ],
-    [
-        1004.0677110013987,
-        271.5254061730979
-    ],
-    [
-        1004.0677110013987,
-        398.13556747853124
-    ],
-    [
-        1017.7965236730722,
-        214.32202004112506
-    ],
-    [
-        261.9491149159373,
-        422.5423455615063
-    ],
-    [
-        188.72878066701202,
-        248.64405172030877
-    ],
-    [
-        1129.1524486766461,
-        422.5423455615063
-    ]
-] -->
