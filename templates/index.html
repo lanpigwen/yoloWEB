@@ -80,6 +80,8 @@
                 <div class="mb-3">
                     <button id="startButtonFile" class="btn btn-primary mr-2">开始录制</button>
                     <button id="stopButtonFile" class="btn btn-danger" disabled>停止录制</button>
+                    <button id="playButtonFile" class="btn btn-danger">继续录制</button>
+                    <button id="pauseButtonFile" class="btn btn-danger">暂停录制</button>
                 </div>
             </div>
             <div class="col-md-6">
@@ -96,7 +98,7 @@
                 <div id="jumptext"></div>
                 <div>
                     <label for="fpsDelayInput">FPS:</label>
-                    <input type="number" id="fpsDelayInput" value="30">
+                    <input type="number" id="fpsDelayInput" value="15">
                     <button id="updateFpsDelayButton">Update</button>
                 </div>
             </div>
@@ -151,8 +153,11 @@
         let tempCanvas=document.createElement("canvas");
         let tempContext=tempCanvas.getContext("2d");
         let timer; // 用于存储定时器引用
-        let fps=30;
+        let fps=15;
+        let points_and_time=[];
 
+        const playButtonFile=document.getElementById("playButtonFile");
+        const pauseButtonFile=document.getElementById("pauseButtonFile");
 
         // 获取元素
         const fpsDelayInput = document.getElementById('fpsDelayInput');
@@ -211,6 +216,7 @@
                     body: formData
                 });
                 video.pause();
+                console.log(frameCount);
         })
 
         function EveryFrame(){
@@ -244,7 +250,7 @@
             }
             originTime=Date.now();
             EveryFrame();
-            bottomControls.style.display = 'none';
+            // bottomControls.style.display = 'none';
 
         })
 
@@ -265,6 +271,7 @@
                     method: 'POST',
                     body: formData
                 });
+                console.log(points_and_time);
         });
 
         startButton.addEventListener('click', async () => {
@@ -319,6 +326,7 @@
 
         function captureFrame(video) {
             frameCount++;
+
             // const canvas = document.createElement("canvas");
             const maxWidth = 640;
             const maxHeight = 640;
@@ -350,7 +358,17 @@
 
             tempCanvas.width = width;
             tempCanvas.height = height;
-
+            for(let obj of points_and_time){
+                if (obj.frame==frameCount){
+                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    for(let p of obj.points){
+                        resultContext.beginPath();
+                        resultContext.arc(p[0], p[1], 80, 0, 2 * Math.PI);
+                        resultContext.fillStyle = 'red';
+                        resultContext.fill();
+                    }
+                }
+            }
             tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height); 
             let data=tempCanvas.toDataURL("image/jpeg");
             return {
@@ -358,6 +376,11 @@
                 imageWidth:width,
                 imageHeight:height
             }
+        }
+        function calculateDistance(x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return Math.sqrt(dx * dx + dy * dy);
         }
 
       // 发送数据到服务器
@@ -402,9 +425,41 @@
                     
                 // };
                 // img.src = "data:image/jpeg;base64," + data.image_data;
-                let ct0=Date.now();
+                // let ct0=Date.now();
                 imgElement.src = "data:image/jpeg;base64," + data.image_data;
-                console.log(Date.now()-ct0);
+
+                let extra_data=data.extra_data;
+
+                if (extra_data.ball.length>=1){
+                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    let ball=extra_data.ball[0];
+                    let cx,cy;
+                    cx=resultCanvas.width*(ball[0]+ball[2])/2.0;
+                    cy=resultCanvas.height*(ball[1]+ball[3])/2.0;
+                    
+                // 创建一个新的数组，其中排除了满足条件的点
+                    points = points.filter(p => {
+                        if (calculateDistance(p[0], p[1], cx, cy) < 60+resultCanvas.width * (ball[2] - ball[0])) {
+                            resultContext.beginPath();
+                            resultContext.arc(p[0], p[1], 90, 0, 2 * Math.PI);
+                            resultContext.fillStyle = 'green';
+                            resultContext.fill();
+                            // 返回 false，表示不包含这个点
+                            return false;
+                        }
+                        else{
+                            resultContext.beginPath();
+                            resultContext.arc(p[0], p[1], 60, 0, 2 * Math.PI);
+                            resultContext.fillStyle = 'red';
+                            resultContext.fill();
+                            return true;
+                        }
+                        // 返回 true，表示包含这个点
+                        
+                    });
+                    
+                }
+
             }
 
             })
@@ -422,20 +477,20 @@
         // 点击 #topCanvasContainer 时触发的函数
         topCanvasContainer.addEventListener('click', () => {
             // 显示 #bottomControls
-            if (bottomControls.style.display==='block'){
-                bottomControls.style.display='none';
-            }
-            else{
-                bottomControls.style.display = 'block';
-                            // 如果之前已经设置了定时器，则清除之前的定时器
-                if (timer) {
-                    clearTimeout(timer);
-                }
-                // 设置一个定时器，在 6 秒后隐藏 #bottomControls
-                timer = setTimeout(() => {
-                    bottomControls.style.display = 'none';
-                }, 3000);
-            }
+            // if (bottomControls.style.display==='block'){
+            //     bottomControls.style.display='none';
+            // }
+            // else{
+            //     bottomControls.style.display = 'block';
+            //                 // 如果之前已经设置了定时器，则清除之前的定时器
+            //     if (timer) {
+            //         clearTimeout(timer);
+            //     }
+            //     // 设置一个定时器，在 6 秒后隐藏 #bottomControls
+            //     timer = setTimeout(() => {
+            //         bottomControls.style.display = 'none';
+            //     }, 3000);
+            // }
                 // 获取点击位置的坐标
                 const rect = resultCanvas.getBoundingClientRect();
                 let realVideo={};
@@ -481,74 +536,14 @@
 </body>
 </html>
 
-
-<!-- [
+<!-- 18
+[
     [
-        371.01690447423226,
-        460.6779363161549
+        263.7770648611852,
+        861.5479024363513
     ],
     [
-        222.28810053110277,
-        464.49149539161976
-    ],
-    [
-        967.4575438769361,
-        417.9660746709485
-    ],
-    [
-        251.2711495046357,
-        466.01691902180573
-    ],
-    [
-        1032.2880481598388,
-        411.10166833511175
-    ],
-    [
-        1030.7626245296528,
-        399.66099110871716
-    ],
-    [
-        1023.1355063787231,
-        276.86438887874874
-    ],
-    [
-        270.33894488196,
-        228.8135445278915
-    ],
-    [
-        1019.3219473032582,
-        233.38981541844933
-    ],
-    [
-        399.99995344776517,
-        433.2203109728079
-    ],
-    [
-        211.61013511980119,
-        231.8643917882634
-    ],
-    [
-        1004.0677110013987,
-        271.5254061730979
-    ],
-    [
-        1004.0677110013987,
-        398.13556747853124
-    ],
-    [
-        1017.7965236730722,
-        214.32202004112506
-    ],
-    [
-        261.9491149159373,
-        422.5423455615063
-    ],
-    [
-        188.72878066701202,
-        248.64405172030877
-    ],
-    [
-        1129.1524486766461,
-        422.5423455615063
+        261.300284909437,
+        460.30955025313995
     ]
 ] -->
