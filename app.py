@@ -30,7 +30,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     model.predict("test.png")
-    return render_template('index.html')
+    return render_template('drible.html')
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -66,7 +66,8 @@ def process_frame():
             'frame_queue':deque(maxlen=MAX_QUEUE_LENGTH),
             'all_frame':[],
             'b_ball':[],
-            'keypoints':[]
+            'keypoints':[],
+            'player':[]
         })
     data=allDataList[uuid]
 
@@ -83,7 +84,8 @@ def process_frame():
     processed_data = base64.b64encode(buffer).decode('utf-8')
     extra_data = {
     'ball': data['b_ball'],
-    'coordinates': data['keypoints']
+    'coordinates': data['keypoints'],
+    'player':data['player']
     }
     response_data={
         'image_data': processed_data,  # 之前处理的图像数据

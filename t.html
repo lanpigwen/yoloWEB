@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Progress Bars</title>
+<style>
+    body {
+        background-color: black; /* 设置页面背景颜色为黑色 */
+    }
+    .progress-circle {
+        --size: 150px;
+        --border-width: 20px;
+        --color: white;
+        --inactive-color: #3b3b3b;
+        
+        position: absolute;
+        border-radius: 50%;
+        display: none;
+    }
+    
+    .progress-circle > svg {
+        width: var(--size);
+        height: var(--size);
+        transform: rotate(90deg) scaleX(-1);
+        cursor: pointer; /* 添加鼠标指针样式为手型 */
+        transition: opacity 1s; /* 添加过渡效果，透明度变化需要1秒 */
+    }
+    
+    .progress-circle circle {
+        --r: calc(var(--size) / 2 - var(--border-width) / 2);
+        
+        cx: calc(var(--size) / 2);
+        cy: calc(var(--size) / 2);
+        r: var(--r);
+        fill: none;
+        stroke-width: var(--border-width);  
+        stroke-linecap: round;
+        transition: stroke-dasharray .4s linear, stroke .3s;
+    }
+    .progress-circle circle:first-child {
+        stroke-opacity: 0.5; /* 设置第一个圆圈的不透明度为 0.5 */
+    }
+    .progress-circle .background-circle {
+        fill: coral;
+        r: calc(var(--r) - var(--border-width) / 2 - 3px);
+    }
+
+    .progress-circle .fade-circle {
+        fill: none; /* 设置填充为透明 */
+        stroke: white; /* 设置边框颜色为白色 */
+        stroke-width: var(--border-width); /* 设置边框宽度为5像素 */
+        /* r: var(--border-width); */
+    }
+
+    .score-raise {
+        color: white; /* 设置文本颜色为白色 */
+        font-size: 120px; /* 设置字体大小 */
+        font-weight: bold; /* 设置字体粗细 */
+    }
+
+  
+</style>
+</head>
+<body>
+    <script>
+        function getSvgCenter(svg) {
+            const rect = svg.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            return { x: centerX, y: centerY };
+        }
+
+        // Function to create a random progress circle
+        function createRandomProgressCircle(index) {
+            const progressCircle = document.createElement('div');
+            progressCircle.classList.add('progress-circle');
+            let left, top;
+            const svgSize = 150; // Assuming SVG size is 150px
+            const borderWidth = 20; // Assuming border width is 20px
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            do {
+                left = Math.random() * (windowWidth - svgSize - 100) + 50;
+                top = Math.random() * (windowHeight - svgSize - 100) + 50;
+            } while (isOverlapping(left, top));
+
+            progressCircle.style.left = `${left}px`;
+            progressCircle.style.top = `${top}px`;
+            progressCircle.style.display = 'block'; // Ensure it's displayed
+            let fontSize = 80;
+            let clickAvailable=false;
+            if (index==1){
+                clickAvailable=true;
+            }
+            progressCircle.innerHTML = `
+                <svg onclick="handleClick(event,this)" click_available="${clickAvailable}" svg_index="${index}">
+                    <circle stroke="var(--inactive-color)" />
+                    <circle stroke="var(--color)" class="progress-value" />
+                    <circle class="background-circle" />
+                    <text x="-50%" y="-50%" font-weight="1000" dominant-baseline="middle" text-anchor="middle" font-size="${fontSize}px" transform="rotate(-90) scale(1, -1)">${index}</text>
+                </svg>
+            `;
+
+            document.body.appendChild(progressCircle);
+            animateProgress(progressCircle);
+        }
+
+        // Function to check if the newly generated circle overlaps with existing circles
+        function isOverlapping(left, top) {
+            const circles = document.querySelectorAll('.progress-circle');
+            for (const circle of circles) {
+                const rect1 = {
+                    x: left,
+                    y: top,
+                    width: 150, // Assuming each circle has a width and height of 100px
+                    height: 150
+                };
+                const rect2 = circle.getBoundingClientRect();
+                if (rect1.x < rect2.x + rect2.width &&
+                    rect1.x + rect1.width > rect2.x &&
+                    rect1.y < rect2.y + rect2.height &&
+                    rect1.y + rect1.height > rect2.y) {
+                    return true; // Overlapping
+                }
+            }
+            return false; // Not overlapping
+        }
+
+        function animateProgress(progressCircle, percent = 100) {
+            const progressBar = progressCircle.querySelector('.progress-value');
+
+            if (percent > 0) {
+                percent -= 1;
+                progressBar.style.strokeDasharray = `calc(2 * 3.1415 * var(--r) * ${percent} / 100), 1000`;
+                setTimeout(() => {
+                    animateProgress(progressCircle, percent);
+                }, 40);
+            } else {
+                progressCircle.remove();
+            }
+        }
+
+
+        // Function to handle click event
+        function handleClick(event,svg) {
+            event.preventDefault();
+                // 获取鼠标点击的坐标位置
+            const clickX = event.clientX;
+            const clickY = event.clientY;
+            console.log('鼠标点击位置：', clickX, clickY);
+                // 如果SVG元素已经在处理点击，则不再接受其他点击
+            if (svg.getAttribute('click_available') === 'false') {
+                return;
+            }
+            // 设置SVG元素正在处理点击
+            svg.setAttribute('click_available', 'false');
+            let svgNextIndex = parseInt(svg.getAttribute('svg_index'));
+            if (svgNextIndex<4){
+                svgNextIndex=svgNextIndex+1;
+                const svgNext = document.querySelector('svg[svg_index="'+svgNextIndex+'"]');
+                svgNext.setAttribute('click_available', 'true');
+            }
+
+            // 创建包含+8的div元素
+            let scoreRaise = document.createElement('svg');
+            scoreRaise.classList.add('score-raise');
+            scoreRaise.innerHTML = '<span>+8</span>';
+            // 将scoreRaise添加到svg的父元素中
+            svg.parentElement.appendChild(scoreRaise);
+            // svg.parentElement.style.zIndex='99';
+
+            scoreRaise.style.position = 'absolute';
+            scoreRaise.style.transform = 'translateY(0)'; // 初始时不进行位移
+
+            setTimeout(() => {
+                scoreRaise.style.transition='transform 1s ease-out';
+                scoreRaise.style.transform = 'translateY(-70px)'; // 假设+8上升50px
+                // scoreRaise.style.opacity = '0';
+             }, 50); // 延迟100毫秒执行上升动画，确保元素已经被添加到DOM中
+            setTimeout(()=>{
+                scoreRaise.style.transition='transform 1s ease-out, opacity 0.5s ease-out';
+                scoreRaise.style.transform = 'translateY(-200px)'; // 假设+8上升50px
+                scoreRaise.style.opacity = '0';                
+            },500)
+
+            svg.style.transform='rotate(90deg) scaleX(-1) scale(3)'
+            svg.style.transition = 'transform 0.5s ease-out, opacity 1s ease-out';
+            svg.style.opacity = '0';
+            
+            setTimeout(()=>{
+                svg.style.transform='rotate(90deg) scaleX(-1) scale(0.5)'
+                svg.style.transition = 'transform 0.5s ease-out, opacity 1s ease-out';
+            },150)
+            // 最后移除 SVG 元素的父元素，即整个 SVG 元素逐渐消失
+            setTimeout(() => {
+                svg.parentElement.remove();
+            }, 1000); // 延迟1秒执行移除操作，保证整个动画执行完毕
+
+            const center = getSvgCenter(svg);
+            console.log('SVG圆心位置：', center.x, center.y);
+        }
+
+        // Function to generate random progress circles
+        function generateRandomProgressCircles() {
+            const existingSVGs = document.querySelectorAll('.progress-circle');
+            if (existingSVGs.length === 0) {
+                for (let i = 1; i <= 4; i++) {
+                    createRandomProgressCircle(i);
+                }
+            }
+
+            // Set timeout for next generation after 5 seconds
+            setTimeout(generateRandomProgressCircles, 5000);
+        }
+
+
+        // Call the function to start generating progress circles
+        generateRandomProgressCircles();
+
+    </script>
+</body>
+</html>

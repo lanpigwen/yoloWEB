@@ -1,0 +1,40 @@
+body {
+background-color: black; /* 设置页面背景颜色为黑色 */
+}
+.progress-circle {
+    --size: 100px;
+    --border-width: 10px;
+    --color: white;
+    --inactive-color: #3b3b3b;
+    
+    position: absolute;
+    border-radius: 50%;
+    display: none;
+    /* fill: none; */
+}
+
+.progress-circle > svg {
+    width: var(--size);
+    height: var(--size);
+    transform: rotate(90deg) scaleX(-1);
+}
+
+.progress-circle circle {
+    --r: calc(var(--size) / 2 - var(--border-width) / 2);
+    
+    cx: calc(var(--size) / 2);
+    cy: calc(var(--size) / 2);
+    r: var(--r);
+    fill: none;
+    stroke-width: var(--border-width);  
+    stroke-linecap: round;
+    transition: stroke-dasharray .4s linear, stroke .3s;
+}
+.progress-circle circle:first-child {
+    stroke-opacity: 0.5; /* 设置第一个圆圈的不透明度为 0.5 */
+    }
+.progress-circle .background-circle {
+    fill: rgb(0, 242, 242); /* 设置进度条外部圆的背景为黄色 */
+    fill:coral;
+    r: calc(var(--r) - var(--border-width) / 2 - 3px);
+}
