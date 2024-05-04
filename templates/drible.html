@@ -62,16 +62,19 @@
 <style>
     body {
         background-color: black; /* 设置页面背景颜色为黑色 */
+        overflow: hidden;
     }
-    .progress-circle {
+
+    .progress-circle { 
         --size: 190px;
-        --border-width: 30px;
+        --border-width: calc(var(--size)*0.15);
         --color: white;
         --inactive-color: #3b3b3b;
-        
+
         position: absolute;
         border-radius: 50%;
         display: none;
+        
     }
     
     .progress-circle > svg {
@@ -81,24 +84,33 @@
         cursor: pointer; /* 添加鼠标指针样式为手型 */
         transition: opacity 1s; /* 添加过渡效果，透明度变化需要1秒 */
     }
+
+    .progress-circle > svg text{
+        dominant-baseline: middle; /* 基准线设置为中线 */
+        text-anchor: middle; /* 文本锚点设置为中心 */
+        transform: rotate(-90deg) scale(1, -1); /* 逆时针旋转90度并垂直翻转 */
+        font-weight: bold;
+        font-size:calc(var(--size)*0.6);
+    }
+
     
     .progress-circle circle {
         --r: calc(var(--size) / 2 - var(--border-width) / 2);
-        
         cx: calc(var(--size) / 2);
         cy: calc(var(--size) / 2);
         r: var(--r);
         fill: none;
         stroke-width: var(--border-width);  
         stroke-linecap: round;
-        transition: stroke-dasharray .4s linear, stroke .3s;
+        transition: stroke-dasharray .3s linear, stroke .3s;
     }
     .progress-circle circle:first-child {
         stroke-opacity: 0.5; /* 设置第一个圆圈的不透明度为 0.5 */
     }
+
     .progress-circle .background-circle {
         fill: coral;
-        r: calc(var(--r) - var(--border-width) / 2 - 5px);
+        r: calc(var(--r) - var(--border-width) / 2 - var(--border-width)*0.2);
     }
 
     .progress-circle .fade-circle {
@@ -110,8 +122,75 @@
 
     .score-raise {
         color: white; /* 设置文本颜色为白色 */
-        font-size: 150px; /* 设置字体大小 */
+        font-size: calc(var(--size)*0.75); /* 设置字体大小 */
         font-weight: bold; /* 设置字体粗细 */
+    }
+
+    #scoreDisplay {
+        --canvasLeft:10px;
+        --canvasTop:10px;
+        --canvasWidth:200px;
+        --canvasHeight:200px;
+        --scoreDisplayWidth:calc(var(--canvasWidth)*0.155);
+        --scoreDisplayHeight:calc(var(--canvasHeight)*0.17);
+        --offset: calc(var(--canvasWidth)*0.15*0.15);
+
+        position: fixed;
+        left: var(--canvasLeft);
+        top: var(--canvasTop);
+        margin-left: var(--offset);
+        margin-top: var(--offset);
+        font-size: calc(var(--scoreDisplayWidth)*0.5); /* 字体大小 */
+        width:var(--scoreDisplayWidth);
+        height:var(--scoreDisplayHeight);
+        border-radius: 10%; /* 圆角 */
+        background-color: rgba(0, 0, 0, 0.5); /* 背景色为透明黑色 */
+        color: white; /* 文本颜色为白色 */
+        display: flex; /* 使用 Flexbox 布局 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        transition: transform 0.2s ease-in-out; /* 变换效果 */
+        z-index: 99;
+    }
+
+    #score {
+        display: grid;
+        place-items: center;
+        font-weight: bold;
+    }
+
+
+    #TimeDisplay {
+        --canvasLeft:10px;
+        --canvasTop:10px;
+        --canvasWidth:200px;
+        --canvasHeight:200px;
+        --scoreDisplayWidth:calc(var(--canvasWidth)*0.175);
+        --scoreDisplayHeight:calc(var(--canvasHeight)*0.17);
+        --offset: calc(var(--canvasWidth)*0.15*0.15);
+
+        position: fixed;
+        right: var(--canvasLeft);
+        top: var(--canvasTop);
+        margin-right: var(--offset);
+        margin-top: var(--offset);
+        font-size: calc(var(--scoreDisplayWidth)*0.35); /* 字体大小 */
+        width:var(--scoreDisplayWidth);
+        height:var(--scoreDisplayHeight);
+        border-radius: 10%; /* 圆角 */
+        background-color: rgba(0, 0, 0, 0.5); /* 背景色为透明黑色 */
+        color: white; /* 文本颜色为白色 */
+        display: flex; /* 使用 Flexbox 布局 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        transition: transform 0.2s ease-in-out; /* 变换效果 */
+        z-index: 99;
+    }
+
+    #Time {
+        display: grid;
+        place-items: center;
+        font-weight: bold;
     }
 
   
@@ -123,6 +202,7 @@
         <canvas id="resultCanvas"></canvas>
         <video id="videoElement" autoplay></video>
         <img id="resultImg">
+
     </div>
 
     <div id="bottomControls" class="container">
@@ -215,6 +295,10 @@
         let points_and_time=[];
         var player=undefined;
         var ball_r=0;
+        let temp_point=[];
+        // 设置初始时间
+        var minutes = 1;
+        var seconds = 0;
 
         const playButtonFile=document.getElementById("playButtonFile");
         const pauseButtonFile=document.getElementById("pauseButtonFile");
@@ -223,6 +307,28 @@
         const fpsDelayInput = document.getElementById('fpsDelayInput');
         const updateFpsDelayButton = document.getElementById('updateFpsDelayButton');
 
+        let updateCountdownTimer=undefined;
+        function updateCountdown() {
+            var countdownElement = document.getElementById('Time');
+            // 如果时间不为 0，则继续倒计时
+            if (minutes > 0 || seconds > 0) {
+                // 减少一秒
+                seconds--;
+                // 如果秒数为负数，则减少分钟，并将秒数重置为 59
+                if (seconds < 0) {
+                    minutes--;
+                    seconds = 59;
+                }
+                // 格式化时间，并更新到页面上
+                countdownElement.innerHTML = (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                // 每秒调用一次更新倒计时函数
+                updateCountdownTimer=setTimeout(updateCountdown, 1000);
+            } else {
+                // 时间到，执行相应的操作
+                countdownElement.innerHTML = "00:00";
+                // 在这里添加你想要执行的操作
+            }
+        }
 
         // 添加点击事件监听器
         updateFpsDelayButton.addEventListener('click', function() {
@@ -260,6 +366,7 @@
             }
             startButtonFile.disabled = true;
             stopButtonFile.disabled = false;
+            generateRandomProgressCircles(Graph_index);
         })
         stopButtonFile.addEventListener('click',async () =>{
             clearInterval(dingshi); // 停止发送帧数据
@@ -376,6 +483,51 @@
             originTime=Date.now();
             EveryFrame();
             // bottomControls.style.display = 'none';
+            const scoreDisplayDiv=document.querySelectorAll('#scoreDisplay');
+            if (scoreDisplayDiv.length<1){
+                const scoreDisplay=document.createElement("div");
+                const scoreSpan=document.createElement("span");
+                scoreDisplay.setAttribute('id',"scoreDisplay");
+                scoreSpan.setAttribute('id','score');
+                scoreSpan.innerHTML=0;
+                scoreDisplay.appendChild(scoreSpan);
+                let left_top=canvas_n2window_XY(0,0);
+                let right_bottom=canvas_n2window_XY(1,1);
+                let width=right_bottom.x-left_top.x;
+                let height=right_bottom.y-left_top.y;
+                scoreDisplay.style.setProperty('--canvasLeft',left_top.x+'px');
+                scoreDisplay.style.setProperty('--canvasTop',left_top.y+'px');
+                scoreDisplay.style.setProperty('--canvasWidth',width+'px');
+                scoreDisplay.style.setProperty('--canvasHeight',height+'px');
+                console.log("scoreDisplay",left_top.x,left_top.y);
+                // scoreDisplay.style.left=left_top.x+'px';
+                // scoreDisplay.style.top=left_top.y+'px';
+                topCanvasContainer.appendChild(scoreDisplay);
+            }
+
+            const TimeDisplayDiv=document.querySelectorAll('#TimeDisplay');
+            if (TimeDisplayDiv.length<1){
+                const TimeDisplay=document.createElement("div");
+                const TimeSpan=document.createElement("span");
+                TimeDisplay.setAttribute('id',"TimeDisplay");
+                TimeSpan.setAttribute('id','Time');
+
+                TimeSpan.innerHTML='01:00';
+                TimeDisplay.appendChild(TimeSpan);
+                let left_top=canvas_n2window_XY(0,0);
+                let right_bottom=canvas_n2window_XY(1,1);
+                let width=right_bottom.x-left_top.x;
+                let height=right_bottom.y-left_top.y;
+                TimeDisplay.style.setProperty('--canvasLeft',left_top.x+'px');
+                TimeDisplay.style.setProperty('--canvasTop',left_top.y+'px');
+                TimeDisplay.style.setProperty('--canvasWidth',width+'px');
+                TimeDisplay.style.setProperty('--canvasHeight',height+'px');
+                console.log("TimeDisplay",left_top.x,left_top.y);
+                topCanvasContainer.appendChild(TimeDisplay);
+                // setTimeout(updateCountdown(),500);
+                updateCountdown();
+            }
+
 
         })
 
@@ -383,6 +535,9 @@
             bottomControls.style.display = 'block';
             console.log('all frame',frameCount,Date.now()-originTime);
             clearTimeout(dingshi);
+            clearTimeout(updateCountdownTimer);
+            clearTimeout(generate_timeout);
+            clearTimeout(timer_runBar);
             startButtonFile.disabled = false; // 启用开始录制按钮
             stopButtonFile.disabled = true; // 禁用停止录制按钮
             const formData = new FormData();
@@ -431,6 +586,7 @@
 
             startButton.disabled = true;
             stopButton.disabled = false;
+            generateRandomProgressCircles(Graph_index);
 
         });
 
@@ -559,7 +715,8 @@
                         const svg = div.querySelector('svg');
                         let center=getSvgCenter(svg);
                         let svg_r = svg.getBoundingClientRect().width/2.0;
-                        if(calculateDistance(center.x, center.y, cx, cy) < ball_r+svg_r){
+                        let offset=60;
+                        if(calculateDistance(center.x, center.y, cx, cy) < offset+ball_r+svg_r){
                             const clickEvent = new MouseEvent('click', {
                                 bubbles: true,
                                 cancelable: true,
@@ -609,8 +766,20 @@
             let canvasPoint=window2canvas_XY(wx,wy);
             let windowPoint=canvas2window_XY(canvasPoint.x,canvasPoint.y);
             console.log("点击了",wx,wy,"转换为canvas坐标",canvasPoint.x,canvasPoint.y,"转换回window",windowPoint.x,windowPoint.y);
-            
-
+            let playerRect_LeftPoint=canvas_n2window_XY(player[0],player[1]);
+            let playerRect_RightPoint=canvas_n2window_XY(player[2],player[3]);
+            let xScale=playerRect_RightPoint.x-playerRect_LeftPoint.x;
+            let yScale=playerRect_RightPoint.y-playerRect_LeftPoint.y;
+            let player_center={
+                x:(playerRect_LeftPoint.x+playerRect_RightPoint.x)/2.0,
+                y:(playerRect_LeftPoint.y+playerRect_RightPoint.y)/2.0
+            }
+            let relative_pointXY={
+                x:(wx-player_center.x)/xScale,
+                y:(wy-player_center.y)/yScale
+            };
+            temp_point.push([relative_pointXY.x,relative_pointXY.y]);
+            console.log(relative_pointXY.x,relative_pointXY.y);
         });
         
         realTimeModeButton.addEventListener('click',() =>{
@@ -626,22 +795,170 @@
         })
     </script>
     <script>
+        let generate_timeout=undefined;
         let lastSvgBar=Date.now();
+        // const pointGraph=[
+        //     [[-0.7,1.1,0]],
+        //     [[-1.5,1.5,0]],
+        //     [[1.5,1,1]],
+        //     [[1.5,1.5,1],[-1.5,1.5,0]],
+        //     [[1.5,1.5,1],[1.5,3.5,1]],
+        //     [[-1,3.5,0],[1,3.5,1]],
+        //     [[1,2,0],[-2,2.5,0],[1,2.5,1]],
+        //     [[1,1.5,1],[-1,1.5,0],[-1.5,2.5,0]],
+        //     [[1,1,1],[-1,1,0],[1,2.5,1]],
+        //     [[1,1,1],[-1,1.5,0],[-1.5,3.5,0]],
+        //     [[1,1,1],[1,3.5,1],[1,3,0],[-1.5,3.5,0]],
+        //     [[-1.5,1,0],[0,3.5,0],[1,1,1],[2,3.5,1]],
+        //     [[0.5,1.5,1],[-0.5,1.3,0],[0.5,3,0],[0.75,2.8,1]]
+        // ]
+
         const pointGraph=[
-            [[-1,1,0]],
-            [[-1.5,1.5,0]],
-            [[1.5,1,1]],
-            [[1.5,1.5,1],[-1.5,1.5,0]],
-            [[1.5,1.5,1],[1.5,3.5,1]],
-            [[-1,3.5,0],[1,3.5,1]],
-            [[1,2,0],[-2,2.5,0],[1,2.5,1]],
-            [[1,1.5,1],[-1,1.5,0],[-1.5,2.5,0]],
-            [[1,1,1],[-1,1,0],[1,2.5,1]],
-            [[1,1,1],[-1,1.5,0],[-1.5,3.5,0]],
-            [[1,1,1],[1,3.5,1],[1,3,0],[-1.5,3.5,0]],
-            [[-1.5,1,0],[0,3.5,0],[1,1,1],[2,3.5,1]],
-            [[0.5,1.5,1],[-0.5,1.5,0],[0.5,3,0],[0.75,3,1]]
+    [
+        [
+            -0.4569160443616049,
+            0.1622943131436253
         ]
+    ],
+    [
+        [
+            -0.6608110346781607,
+            0.18067539023483425
+        ]
+    ],
+    [
+        [
+            0.6548588031622723,
+            0.14328595608708938
+        ]
+    ],
+    [
+        [
+            0.6699621843642641,
+            0.11380580513068757
+        ],
+        [
+            -0.7164254378620233,
+            0.16788900656455283
+        ]
+    ],
+    [
+        [
+            0.6447280105449277,
+            0.15186820422232652
+        ],
+        [
+            0.6397753364209473,
+            -0.22226505356002127
+        ]
+    ],
+    [
+        [
+            -0.6477648208070723,
+            -0.2504742353116721
+        ],
+        [
+            0.6895402912267452,
+            -0.2256929850017922
+        ]
+    ],
+    [
+        [
+            -0.41561084443625324,
+            0.1438306962118528
+        ],
+        [
+            -0.6908288618565326,
+            -0.1975228434101765
+        ],
+        [
+            0.7259885551770132,
+            -0.18285530850454243
+        ]
+    ],
+    [
+        [
+            0.6380025179206235,
+            0.12437331000396129
+        ],
+        [
+            -0.5982885287660238,
+            0.12974451996940475
+        ],
+        [
+            0.6305249511059865,
+            -0.21938412778442024
+        ]
+    ],
+    [
+        [
+            0.7244941140799679,
+            0.12163504736435851
+        ],
+        [
+            -0.5819574143534769,
+            0.16386130702348498
+        ],
+        [
+            -0.7012849080051192,
+            -0.17922705270691744
+        ]
+    ],
+    [
+        [
+            0.6956007559342213,
+            0.12118042430772048
+        ],
+        [
+            0.7622454776413742,
+            -0.19034975368800033
+        ],
+        [
+            -0.37071479138022434,
+            0.11446641185091615
+        ],
+        [
+            -0.5681806334754921,
+            -0.2078061860756916
+        ]
+    ],
+    [
+        [
+            -0.6401892039820858,
+            0.14612497862174365
+        ],
+        [
+            -0.3819670220697317,
+            -0.2379943775301515
+        ],
+        [
+            0.6736356938034563,
+            0.1682325674650182
+        ],
+        [
+            0.7262365086374545,
+            -0.26010196637342603
+        ]
+    ],
+    [
+        [
+            0.5933719932659184,
+            0.15194761568215892
+        ],
+        [
+            -0.582570252989365,
+            0.20413316092536224
+        ],
+        [
+            -0.36855559442596403,
+            -0.17588465571745174
+        ],
+        [
+            0.6628129197146815,
+            -0.1906036556578424
+        ]
+    ]
+];
 
         let Graph_index=0;
         function getSvgCenter(svg) {
@@ -650,18 +967,27 @@
             const centerY = rect.top + rect.height / 2;
             return { x: centerX, y: centerY };
         }
+        function updateSize(newSize) {
+            
+            document.documentElement.style.setProperty('--size', newSize);
 
+        }
         // Function to create a random progress circle
-        function createRandomProgressCircle(index,randomTag=true,_left=0,_top=0) {
+        function createRandomProgressCircle(index,randomTag=true,_left=0,_top=0,each_score=2) {
+
             const progressCircle = document.createElement('div');
             progressCircle.classList.add('progress-circle');
+            if(ball_r!=0){
+                const sizeValue = (2.3 * ball_r) + 'px'; // 在值后面连接 'px'
+                progressCircle.style.setProperty('--size', sizeValue);
+            } 
+
             let left, top;
             if(randomTag==true){
                 const svgSize = 150; // Assuming SVG size is 150px
                 const borderWidth = 20; // Assuming border width is 20px
                 const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;
-                
+                const windowHeight = window.innerHeight;           
                 do {
                     left = Math.random() * (windowWidth - svgSize - 100) + 50;
                     top = Math.random() * (windowHeight - svgSize - 100) + 50;
@@ -672,26 +998,23 @@
                 top=_top;
             }
 
-
             progressCircle.style.left = `${left}px`;
             progressCircle.style.top = `${top}px`;
             progressCircle.style.display = 'block'; // Ensure it's displayed
-            let fontSize = 120;
+            
             let clickAvailable=false;
             if (index==1){
                 clickAvailable=true;
             }
             progressCircle.innerHTML = `
-                <svg onclick="handleClick(event,this)" click_available="${clickAvailable}" svg_index="${index}">
+                <svg onclick="handleClick(event,this)" click_available="${clickAvailable}" svg_index="${index}" svg_score="${each_score}">
                     <circle stroke="var(--inactive-color)" />
                     <circle stroke="var(--color)" class="progress-value" />
                     <circle class="background-circle" />
-                    <text x="-50%" y="-50%" font-weight="1000" dominant-baseline="middle" text-anchor="middle" font-size="${fontSize}px" transform="rotate(-90) scale(1, -1)">${index}</text>
+                    <text x="-50%" y="-50%">${index}</text>
                 </svg>
             `;
-
             document.body.appendChild(progressCircle);
-            animateProgress(progressCircle);
         }
 
         // Function to check if the newly generated circle overlaps with existing circles
@@ -715,30 +1038,6 @@
             return false; // Not overlapping
         }
 
-        function animateProgress(progressCircle, percent = 100) {
-            let svgCt0=Date.now();
-            console.log("bar",svgCt0-lastSvgBar);
-            // if(svgCt0-lastSvgBar<30){
-            //     setTimeout(() => {
-            //         animateProgress(progressCircle, percent);
-            //     }, 15);
-            //     return;
-            // }
-            lastSvgBar=Date.now();
-            const progressBar = progressCircle.querySelector('.progress-value');
-
-            if (percent > 0) {
-                percent -= 1;
-                progressBar.style.strokeDasharray = `calc(2 * 3.1415 * var(--r) * ${percent} / 100), 1000`;
-                setTimeout(() => {
-                    animateProgress(progressCircle, percent);
-                }, 30);
-            } else {
-                progressCircle.remove();
-            }
-        }
-
-
         // Function to handle click event
         function handleClick(event,svg) {
             event.preventDefault();
@@ -758,10 +1057,30 @@
                 svgNext.setAttribute('click_available', 'true');
             }
 
+            let left_top=canvas_n2window_XY(0,0);
+            let right_bottom=canvas_n2window_XY(1,1);
+            let width=right_bottom.x-left_top.x;
+            let height=right_bottom.y-left_top.y;
+            let scoreDisplay=document.getElementById('scoreDisplay');
+            scoreDisplay.style.setProperty('--canvasLeft',left_top.x+'px');
+            scoreDisplay.style.setProperty('--canvasTop',left_top.y+'px');
+            scoreDisplay.style.setProperty('--canvasWidth',width+'px');
+            scoreDisplay.style.setProperty('--canvasHeight',height+'px');
+            console.log("scoreDisplay",left_top.x,left_top.y);
+            scoreDisplay.style.left=left_top.x+'px';
+            scoreDisplay.style.top=left_top.y+'px';
+
+
             // 创建包含+8的div元素
+            let score=svg.getAttribute('svg_score');
+
+            let scoreSpan=document.getElementById('score');
+            let newScore=parseInt(scoreSpan.innerHTML)+parseInt(score);
+            scoreSpan.innerHTML=newScore;
+
             let scoreRaise = document.createElement('svg');
             scoreRaise.classList.add('score-raise');
-            scoreRaise.innerHTML = '<span>+8</span>';
+            scoreRaise.innerHTML = '<span>+'+score+'</span>';
             // 将scoreRaise添加到svg的父元素中
             svg.parentElement.appendChild(scoreRaise);
             // svg.parentElement.style.zIndex='99';
@@ -770,14 +1089,25 @@
             scoreRaise.style.transform = 'translateY(0)'; // 初始时不进行位移
 
             setTimeout(() => {
+
                 scoreRaise.style.transition='transform 1s ease-out';
                 scoreRaise.style.transform = 'translateY(-70px)'; // 假设+8上升50px
-                // scoreRaise.style.opacity = '0';
+
+                scoreSpan.style.transition='transform 0.2s ease-out , color 0.2s';
+                scoreSpan.style.transform = 'scale(1.3)';
+                scoreSpan.style.color='green';
+                setTimeout(()=>{
+                    scoreSpan.style.transform = 'scale(1)';
+                    scoreSpan.style.color='white';   
+                },200)
+
              }, 50); // 延迟100毫秒执行上升动画，确保元素已经被添加到DOM中
+
             setTimeout(()=>{
                 scoreRaise.style.transition='transform 1s ease-out, opacity 0.5s ease-out';
                 scoreRaise.style.transform = 'translateY(-200px)'; // 假设+8上升50px
-                scoreRaise.style.opacity = '0';                
+                scoreRaise.style.opacity = '0';    
+    
             },500)
 
             svg.style.transform='rotate(90deg) scaleX(-1) scale(3)'
@@ -790,18 +1120,98 @@
             },150)
             // 最后移除 SVG 元素的父元素，即整个 SVG 元素逐渐消失
             setTimeout(() => {
-                svg.parentElement.remove();
+                if (svg.parentElement){
+                    svg.parentElement.remove();
+                }  
             }, 1000); // 延迟1秒执行移除操作，保证整个动画执行完毕
-
             // const center = getSvgCenter(svg);
             // console.log('SVG圆心位置：', center.x, center.y);
         }
 
+        let timer_runBar=undefined;
+        function runSvgsBar(percent=100){
+            const existingSVGs = document.querySelectorAll('.progress-circle');
+            let len=existingSVGs.length;
+            if(len<1){
+                Graph_index=(Graph_index+1)%pointGraph.length;
+                generate_timeout=setTimeout(function() {
+                    console.log("runBar 前面点击 产生的")
+                    generateRandomProgressCircles(Graph_index); // 传递参数给 generateRandomProgressCircles
+                }, 200);
+                return;
+            }
+            if (percent > 0) {
+                percent -= 1;
+                for(let progressCircle of existingSVGs){
+                    const progressBar = progressCircle.querySelector('.progress-value');
+                    progressBar.style.strokeDasharray = `calc(2 * 3.1415 * var(--r) * ${percent} / 100), 1000`;
+                }         
+                timer_runBar=setTimeout(() => {
+                    runSvgsBar(percent);
+                }, 30);
+            } 
+            else {
+                for(let progressCircle of existingSVGs){
+                    progressCircle.remove();
+                }
+                Graph_index=(Graph_index+1)%pointGraph.length;
+                generate_timeout=setTimeout(function() {
+                    console.log("runBar 产生的")
+                    generateRandomProgressCircles(Graph_index); // 传递参数给 generateRandomProgressCircles
+                }, 200);
+            }
+        }
+        document.addEventListener("keydown", function(event) {
+        // 如果按下的是空格键
+        if (event.keyCode === 32) {
+            // 如果视频正在播放，就暂停；否则，就播放
+            if (video.paused) {
+            video.play();
+            } else {
+            video.pause();
+            }
+        }
+        if (event.keyCode === 13) {
+            points_and_time.push(temp_point);
+            temp_point=[];
+            console.log(points_and_time);
+        }
+        if (event.keyCode === 39){  
+            if(timer_runBar){
+                clearTimeout(timer_runBar);
+            }  
+            const existingSVGs = document.querySelectorAll('.progress-circle');
+            for(let progressCircle of existingSVGs){
+                    progressCircle.remove();
+                }
+            Graph_index=(Graph_index+1)%pointGraph.length;
+            generateRandomProgressCircles(Graph_index);
+        }
+        if (event.keyCode === 37){
+            if(timer_runBar){
+                clearTimeout(timer_runBar);
+            }
+            const existingSVGs = document.querySelectorAll('.progress-circle');
+            for(let progressCircle of existingSVGs){
+                    progressCircle.remove();
+                }
+            Graph_index-=1;
+            if(Graph_index<0){
+                Graph_index=pointGraph.length-1;
+            }
+            generateRandomProgressCircles(Graph_index);
+
+            // Graph_index=(Graph_index-1)%pointGraph.length;
+        }
+        
+
+    });
         // Function to generate random progress circles
         function generateRandomProgressCircles(Graph_index) {
             const existingSVGs = document.querySelectorAll('.progress-circle');
             if (existingSVGs.length === 0) {
                 let ball2r=2*ball_r;
+
                 // console.log("球的直径",ball2r,"球的半径",ball_r);
                 if (player!=undefined && ball2r!=0){
                     console.log("graph index",Graph_index);
@@ -809,39 +1219,191 @@
                     // console.log(points_in_G);
                     // console.log(pointGraph);
                     Graph_index=(Graph_index+1)%pointGraph.length;
-                    let playerRect_LeftPoint=canvas_n2window_XY(player[0],player[3]);
-                    let playerRect_RightPoint=canvas_n2window_XY(player[2],player[3]);
                     // console.log("人的左下角",playerRect_LeftPoint.x,playerRect_LeftPoint.y);
                     // console.log()
                     let index=1;
+                    let each_score=2*points_in_G.length;
                     for(let point of points_in_G){
-                        let left=playerRect_LeftPoint.x + point[0]*ball2r + point[2]*(playerRect_RightPoint.x-playerRect_LeftPoint.x) - ball_r;
-                        let top=playerRect_LeftPoint.y - point[1]*ball2r - ball_r;
-                        createRandomProgressCircle(index,false,left,top);
-                        
+                        let playerRect_LeftPoint=canvas_n2window_XY(player[0],player[1]);
+                        let playerRect_RightPoint=canvas_n2window_XY(player[2],player[3]);
+                        let xScale=playerRect_RightPoint.x-playerRect_LeftPoint.x;
+                        let yScale=playerRect_RightPoint.y-playerRect_LeftPoint.y;
+                        let player_center={
+                            x:(playerRect_LeftPoint.x+playerRect_RightPoint.x)/2.0,
+                            y:(playerRect_LeftPoint.y+playerRect_RightPoint.y)/2.0
+                        }
+                        let {rx,ry}={rx:point[0],ry:point[1]};
+                        let wx=rx*xScale+player_center.x;
+                        let wy=ry*yScale+player_center.y;
+
+                        let left=wx-ball_r;
+                        let top=wy-ball_r;
+
+                        createRandomProgressCircle(index,false,left,top,each_score);
                         // console.log(index,"放在",left,top);
                         index++;
-                        
                     }
+                    runSvgsBar(100);
                 }
-
-
-                // for (let i = 1; i <= 4; i++) {
-                //     createRandomProgressCircle(i);
-                // }
+                else{
+                    generate_timeout=setTimeout(function() {
+                        console.log("gennerate 产生的")
+                        generateRandomProgressCircles(Graph_index); // 传递参数给 generateRandomProgressCircles
+                    }, 1000);
+                }
             }
-
-            // Set timeout for next generation after 5 seconds
-            // setTimeout(generateRandomProgressCircles, 5000);
-            setTimeout(function() {
-                generateRandomProgressCircles(Graph_index); // 传递参数给 generateRandomProgressCircles
-            }, 4000);
         }
-
-
-        // Call the function to start generating progress circles
-        generateRandomProgressCircles(Graph_index);
-
     </script>
 </body>
 </html>
+
+
+
+
+
+<!-- [
+    [
+        [
+            -0.4569160443616049,
+            0.1622943131436253
+        ]
+    ],
+    [
+        [
+            -0.6608110346781607,
+            0.18067539023483425
+        ]
+    ],
+    [
+        [
+            0.6548588031622723,
+            0.14328595608708938
+        ]
+    ],
+    [
+        [
+            0.6699621843642641,
+            0.11380580513068757
+        ],
+        [
+            -0.7164254378620233,
+            0.16788900656455283
+        ]
+    ],
+    [
+        [
+            0.6447280105449277,
+            0.15186820422232652
+        ],
+        [
+            0.6397753364209473,
+            -0.22226505356002127
+        ]
+    ],
+    [
+        [
+            -0.6477648208070723,
+            -0.2504742353116721
+        ],
+        [
+            0.6895402912267452,
+            -0.2256929850017922
+        ]
+    ],
+    [
+        [
+            -0.41561084443625324,
+            0.1438306962118528
+        ],
+        [
+            -0.6908288618565326,
+            -0.1975228434101765
+        ],
+        [
+            0.7259885551770132,
+            -0.18285530850454243
+        ]
+    ],
+    [
+        [
+            0.6380025179206235,
+            0.12437331000396129
+        ],
+        [
+            -0.5982885287660238,
+            0.12974451996940475
+        ],
+        [
+            0.6305249511059865,
+            -0.21938412778442024
+        ]
+    ],
+    [
+        [
+            0.7244941140799679,
+            0.12163504736435851
+        ],
+        [
+            -0.5819574143534769,
+            0.16386130702348498
+        ],
+        [
+            -0.7012849080051192,
+            -0.17922705270691744
+        ]
+    ],
+    [
+        [
+            0.6956007559342213,
+            0.12118042430772048
+        ],
+        [
+            0.7622454776413742,
+            -0.19034975368800033
+        ],
+        [
+            -0.37071479138022434,
+            0.11446641185091615
+        ],
+        [
+            -0.5681806334754921,
+            -0.2078061860756916
+        ]
+    ],
+    [
+        [
+            -0.6401892039820858,
+            0.14612497862174365
+        ],
+        [
+            -0.3819670220697317,
+            -0.2379943775301515
+        ],
+        [
+            0.6736356938034563,
+            0.1682325674650182
+        ],
+        [
+            0.7262365086374545,
+            -0.26010196637342603
+        ]
+    ],
+    [
+        [
+            0.5933719932659184,
+            0.15194761568215892
+        ],
+        [
+            -0.582570252989365,
+            0.20413316092536224
+        ],
+        [
+            -0.36855559442596403,
+            -0.17588465571745174
+        ],
+        [
+            0.6628129197146815,
+            -0.1906036556578424
+        ]
+    ]
+] -->

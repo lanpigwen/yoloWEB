@@ -33,7 +33,7 @@ from ultralytics import YOLO
 
 # # Load a model
 # model = YOLO('best-ball-rim-4.pt')  # load an official model
-model = YOLO('pts/yolov8m-pose.pt')  # load a custom trained
+model = YOLO('pts/ball-rim-pose.engine',task='pose')  # load a custom trained
 
 # # Use the model
 # success=model.export(format='engine')
@@ -45,5 +45,5 @@ model = YOLO('pts/yolov8m-pose.pt')  # load a custom trained
 
 # # Run inference
 
-video_file=r"C:\NBA-DATASETS\shooting\1713181884349.mp4"
-results = model(video_file,show=True,save=True)
+video_file=r"C:\NBA-DATASETS\shooting\videos\homecourt-shoot3.mp4"
+results = model(video_file,show=True)
