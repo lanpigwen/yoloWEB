@@ -48,6 +48,7 @@
             z-index: 6;
             object-fit: contain;
             opacity: 0.5;
+            /* transform: scaleX(-1); */
         }
 
         #resultImg{
@@ -109,7 +110,12 @@
     }
 
     .progress-circle .background-circle {
-        fill: coral;
+        fill: rgb(80, 255, 100);
+        r: calc(var(--r) - var(--border-width) / 2 - var(--border-width)*0.2);
+    }
+
+    .progress-circle .background-circle-bad {
+        fill: red;
         r: calc(var(--r) - var(--border-width) / 2 - var(--border-width)*0.2);
     }
 
@@ -296,9 +302,11 @@
         var player=undefined;
         var ball_r=0;
         let temp_point=[];
+        let keypoints=[];
         // 设置初始时间
         var minutes = 1;
         var seconds = 0;
+        // let flipFrame
 
         const playButtonFile=document.getElementById("playButtonFile");
         const pauseButtonFile=document.getElementById("pauseButtonFile");
@@ -403,7 +411,7 @@
             }
             ct1=ct0-lastFrame;
             lastFrame=Date.now();
-            console.log('frame gap',ct1,"cap",ct2,"send",ct3,"wait",lastFrame-ct00);
+            // console.log('frame gap',ct1,"cap",ct2,"send",ct3,"wait",lastFrame-ct00);
             const {imageData,imageWidth,imageHeight} = captureFrame(video);
             ct2=Date.now()-lastFrame;
             temp=Date.now();
@@ -536,8 +544,8 @@
             console.log('all frame',frameCount,Date.now()-originTime);
             clearTimeout(dingshi);
             clearTimeout(updateCountdownTimer);
-            clearTimeout(generate_timeout);
-            clearTimeout(timer_runBar);
+            // clearTimeout(generate_timeout);
+            // clearTimeout(timer_runBar);
             startButtonFile.disabled = false; // 启用开始录制按钮
             stopButtonFile.disabled = true; // 禁用停止录制按钮
             const formData = new FormData();
@@ -650,7 +658,15 @@
                     }
                 }
             }
+
+
             tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height); 
+                // 在这里应用水平翻转
+    // tempContext.save(); // 保存当前绘图状态
+    // tempContext.scale(-1, 1); // 水平翻转
+    // tempContext.drawImage(video, -tempCanvas.width, 0, tempCanvas.width, tempCanvas.height); // 绘制翻转后的视频帧
+    // tempContext.restore(); // 恢复绘图状态
+
             let data=tempCanvas.toDataURL("image/jpeg");
             return {
                 imageData:data,
@@ -708,15 +724,21 @@
                     let cx,cy;
                     cx=(bp1.x+bp2.x)/2.0;
                     cy=(bp1.y+bp2.y)/2.0;
-                    ball_r = (bp2.x-bp1.x)/2.0;
-                    // console.log("在send中，球的半径为",ball_r,"在send中，window上的半径",(bp2.x-bp1.x)/2.0);
+                    ball_r = (bp2.x-bp1.x)/2.0;                
+                }
+                if(extra_data.coordinates.length>=1){
+                    keypoints=extra_data.coordinates[0];
+                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    let left_hand=canvas_n2window_XY(keypoints[9][0],keypoints[9][1]);
+                    let right_hand=canvas_n2window_XY(keypoints[10][0],keypoints[10][1]);
+
                     const existingSVGs = document.querySelectorAll('.progress-circle');
                     for(let div of existingSVGs){
                         const svg = div.querySelector('svg');
                         let center=getSvgCenter(svg);
                         let svg_r = svg.getBoundingClientRect().width/2.0;
                         let offset=60;
-                        if(calculateDistance(center.x, center.y, cx, cy) < offset+ball_r+svg_r){
+                        if(calculateDistance(center.x, center.y, left_hand.x, left_hand.y) < offset+svg_r || calculateDistance(center.x, center.y, right_hand.x, right_hand.y) < offset+svg_r){
                             const clickEvent = new MouseEvent('click', {
                                 bubbles: true,
                                 cancelable: true,
@@ -724,9 +746,10 @@
                                 });
                             svg.dispatchEvent(clickEvent);
                         }
-                    }                    
+                    }  
                 }
             }
+            
 
             // console.log(player);
             })
@@ -760,26 +783,6 @@
                     bottomControls.style.display = 'none';
                 }, 3000);
             }
-            let wx,wy,cx,cy;
-            wx=event.clientX;
-            wy=event.clientY;
-            let canvasPoint=window2canvas_XY(wx,wy);
-            let windowPoint=canvas2window_XY(canvasPoint.x,canvasPoint.y);
-            console.log("点击了",wx,wy,"转换为canvas坐标",canvasPoint.x,canvasPoint.y,"转换回window",windowPoint.x,windowPoint.y);
-            let playerRect_LeftPoint=canvas_n2window_XY(player[0],player[1]);
-            let playerRect_RightPoint=canvas_n2window_XY(player[2],player[3]);
-            let xScale=playerRect_RightPoint.x-playerRect_LeftPoint.x;
-            let yScale=playerRect_RightPoint.y-playerRect_LeftPoint.y;
-            let player_center={
-                x:(playerRect_LeftPoint.x+playerRect_RightPoint.x)/2.0,
-                y:(playerRect_LeftPoint.y+playerRect_RightPoint.y)/2.0
-            }
-            let relative_pointXY={
-                x:(wx-player_center.x)/xScale,
-                y:(wy-player_center.y)/yScale
-            };
-            temp_point.push([relative_pointXY.x,relative_pointXY.y]);
-            console.log(relative_pointXY.x,relative_pointXY.y);
         });
         
         realTimeModeButton.addEventListener('click',() =>{
@@ -797,200 +800,44 @@
     <script>
         let generate_timeout=undefined;
         let lastSvgBar=Date.now();
-        // const pointGraph=[
-        //     [[-0.7,1.1,0]],
-        //     [[-1.5,1.5,0]],
-        //     [[1.5,1,1]],
-        //     [[1.5,1.5,1],[-1.5,1.5,0]],
-        //     [[1.5,1.5,1],[1.5,3.5,1]],
-        //     [[-1,3.5,0],[1,3.5,1]],
-        //     [[1,2,0],[-2,2.5,0],[1,2.5,1]],
-        //     [[1,1.5,1],[-1,1.5,0],[-1.5,2.5,0]],
-        //     [[1,1,1],[-1,1,0],[1,2.5,1]],
-        //     [[1,1,1],[-1,1.5,0],[-1.5,3.5,0]],
-        //     [[1,1,1],[1,3.5,1],[1,3,0],[-1.5,3.5,0]],
-        //     [[-1.5,1,0],[0,3.5,0],[1,1,1],[2,3.5,1]],
-        //     [[0.5,1.5,1],[-0.5,1.3,0],[0.5,3,0],[0.75,2.8,1]]
-        // ]
-
-        const pointGraph=[
-    [
-        [
-            -0.4569160443616049,
-            0.1622943131436253
-        ]
-    ],
-    [
-        [
-            -0.6608110346781607,
-            0.18067539023483425
-        ]
-    ],
-    [
-        [
-            0.6548588031622723,
-            0.14328595608708938
-        ]
-    ],
-    [
-        [
-            0.6699621843642641,
-            0.11380580513068757
-        ],
-        [
-            -0.7164254378620233,
-            0.16788900656455283
-        ]
-    ],
-    [
-        [
-            0.6447280105449277,
-            0.15186820422232652
-        ],
-        [
-            0.6397753364209473,
-            -0.22226505356002127
-        ]
-    ],
-    [
-        [
-            -0.6477648208070723,
-            -0.2504742353116721
-        ],
-        [
-            0.6895402912267452,
-            -0.2256929850017922
-        ]
-    ],
-    [
-        [
-            -0.41561084443625324,
-            0.1438306962118528
-        ],
-        [
-            -0.6908288618565326,
-            -0.1975228434101765
-        ],
-        [
-            0.7259885551770132,
-            -0.18285530850454243
-        ]
-    ],
-    [
-        [
-            0.6380025179206235,
-            0.12437331000396129
-        ],
-        [
-            -0.5982885287660238,
-            0.12974451996940475
-        ],
-        [
-            0.6305249511059865,
-            -0.21938412778442024
-        ]
-    ],
-    [
-        [
-            0.7244941140799679,
-            0.12163504736435851
-        ],
-        [
-            -0.5819574143534769,
-            0.16386130702348498
-        ],
-        [
-            -0.7012849080051192,
-            -0.17922705270691744
-        ]
-    ],
-    [
-        [
-            0.6956007559342213,
-            0.12118042430772048
-        ],
-        [
-            0.7622454776413742,
-            -0.19034975368800033
-        ],
-        [
-            -0.37071479138022434,
-            0.11446641185091615
-        ],
-        [
-            -0.5681806334754921,
-            -0.2078061860756916
-        ]
-    ],
-    [
-        [
-            -0.6401892039820858,
-            0.14612497862174365
-        ],
-        [
-            -0.3819670220697317,
-            -0.2379943775301515
-        ],
-        [
-            0.6736356938034563,
-            0.1682325674650182
-        ],
-        [
-            0.7262365086374545,
-            -0.26010196637342603
-        ]
-    ],
-    [
-        [
-            0.5933719932659184,
-            0.15194761568215892
-        ],
-        [
-            -0.582570252989365,
-            0.20413316092536224
-        ],
-        [
-            -0.36855559442596403,
-            -0.17588465571745174
-        ],
-        [
-            0.6628129197146815,
-            -0.1906036556578424
-        ]
-    ]
-];
 
         let Graph_index=0;
+        let timer_runBar=undefined;
+        let lastPoint=Math.random();
+        let g_percent=100;
         function getSvgCenter(svg) {
             const rect = svg.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
             return { x: centerX, y: centerY };
         }
-        function updateSize(newSize) {
-            
-            document.documentElement.style.setProperty('--size', newSize);
-
-        }
         // Function to create a random progress circle
-        function createRandomProgressCircle(index,randomTag=true,_left=0,_top=0,each_score=2) {
+        function createRandomProgressCircle(index,randomTag=true,_left=0,_top=0,each_score=2,click=true) {
 
             const progressCircle = document.createElement('div');
             progressCircle.classList.add('progress-circle');
             if(ball_r!=0){
-                const sizeValue = (2.3 * ball_r) + 'px'; // 在值后面连接 'px'
+                const sizeValue = (1.7 * ball_r) + 'px'; // 在值后面连接 'px'
                 progressCircle.style.setProperty('--size', sizeValue);
             } 
 
             let left, top;
-            if(randomTag==true){
-                const svgSize = 150; // Assuming SVG size is 150px
-                const borderWidth = 20; // Assuming border width is 20px
-                const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;           
+            if(randomTag==true){         
                 do {
-                    left = Math.random() * (windowWidth - svgSize - 100) + 50;
-                    top = Math.random() * (windowHeight - svgSize - 100) + 50;
+                    let random_x,random_y;
+                    random_x = Math.random();
+                    random_y = Math.random();
+
+                    while((index!=0 && ((lastPoint<0.5 && random_x<0.5) || (lastPoint>0.5 && random_x>0.5))) || ((random_x>player[0] && random_x<player[2]) && (random_y>player[1] && random_y<player[3])) || random_x<0.05 || random_x>0.9){
+                        random_x = Math.random();
+                    }
+                    while(((random_x>player[0] && random_x<player[2]) && (random_y>player[1] && random_y<player[3])) || random_y<0.1 || random_y>0.85*keypoints[14][1]){
+                        random_y = Math.random();
+                    }
+                    lastPoint=random_x;
+                    let random_point=canvas_n2window_XY(random_x,random_y);
+                    left=random_point.x;
+                    top=random_point.y;
                 } while (isOverlapping(left, top));
             }
             else{
@@ -1001,19 +848,29 @@
             progressCircle.style.left = `${left}px`;
             progressCircle.style.top = `${top}px`;
             progressCircle.style.display = 'block'; // Ensure it's displayed
-            
-            let clickAvailable=false;
-            if (index==1){
-                clickAvailable=true;
+            if(click){
+                let clickAvailable=true;
+                progressCircle.innerHTML = `
+                    <svg onclick="handleClick(event,this)" click_available="${clickAvailable}" svg_index="${index}" svg_score="${each_score}">
+                        <circle stroke="var(--inactive-color)" />
+                        <circle stroke="var(--color)" class="progress-value" />
+                        <circle class="background-circle" />
+                        <text x="-50%" y="-50%"></text>
+                    </svg>
+                `;
             }
-            progressCircle.innerHTML = `
-                <svg onclick="handleClick(event,this)" click_available="${clickAvailable}" svg_index="${index}" svg_score="${each_score}">
-                    <circle stroke="var(--inactive-color)" />
-                    <circle stroke="var(--color)" class="progress-value" />
-                    <circle class="background-circle" />
-                    <text x="-50%" y="-50%">${index}</text>
-                </svg>
-            `;
+            else{
+                let clickAvailable=true;
+                progressCircle.innerHTML = `
+                    <svg onclick="handleClick(event,this)" click_available="${clickAvailable}" svg_index="${index}" svg_score="${each_score}">
+                        <circle stroke="var(--inactive-color)" />
+                        <circle stroke="var(--color)" class="progress-value" />
+                        <circle class="background-circle-bad" />
+                        <text x="-50%" y="-50%">×</text>
+                    </svg>
+                `;
+            }
+
             document.body.appendChild(progressCircle);
         }
 
@@ -1073,14 +930,23 @@
 
             // 创建包含+8的div元素
             let score=svg.getAttribute('svg_score');
-
+            if(parseInt(score)>0){
+                score=Math.floor(score*(g_percent/100.0));
+            }
             let scoreSpan=document.getElementById('score');
             let newScore=parseInt(scoreSpan.innerHTML)+parseInt(score);
+            newScore=Math.max(0,newScore);
             scoreSpan.innerHTML=newScore;
 
             let scoreRaise = document.createElement('svg');
             scoreRaise.classList.add('score-raise');
-            scoreRaise.innerHTML = '<span>+'+score+'</span>';
+            if(parseInt(score)>0){
+                scoreRaise.innerHTML = '<span>+'+score+'</span>';
+            }
+            else{
+                scoreRaise.innerHTML = '<span>'+score+'</span>';
+            }
+            
             // 将scoreRaise添加到svg的父元素中
             svg.parentElement.appendChild(scoreRaise);
             // svg.parentElement.style.zIndex='99';
@@ -1090,14 +956,27 @@
             scoreRaise.style.width='auto';
             scoreRaise.style.transform = 'translateY(0)'; // 初始时不进行位移
 
+
             setTimeout(() => {
 
-                scoreRaise.style.transition='transform 1s ease-out';
-                scoreRaise.style.transform = 'translateY(-70px)'; // 假设+8上升50px
 
-                scoreSpan.style.transition='transform 0.2s ease-out , color 0.2s';
-                scoreSpan.style.transform = 'scale(1.3)';
-                scoreSpan.style.color='green';
+                if(parseInt(score)>0){
+                    scoreRaise.style.transition='transform 1s ease-out';
+                    scoreRaise.style.transform = 'translateY(-70px)'; // 假设+8上升50px
+
+                    scoreSpan.style.transition='transform 0.2s ease-out , color 0.2s';
+                    scoreSpan.style.transform = 'scale(1.3)';
+                    scoreSpan.style.color='green';
+                }
+                else{
+                    scoreRaise.style.transition='transform 1s ease-out';
+                    scoreRaise.style.transform = 'translateY(-70px)'; // 假设+8上升50px
+
+                    scoreSpan.style.transition='transform 0.2s ease-out , color 0.2s';
+                    scoreSpan.style.transform = 'scale(1.5)';
+                    scoreSpan.style.color='red';
+                }
+                
                 setTimeout(()=>{
                     scoreSpan.style.transform = 'scale(1)';
                     scoreSpan.style.color='white';   
@@ -1126,16 +1005,13 @@
                     svg.parentElement.remove();
                 }  
             }, 1000); // 延迟1秒执行移除操作，保证整个动画执行完毕
-            // const center = getSvgCenter(svg);
-            // console.log('SVG圆心位置：', center.x, center.y);
         }
-
-        let timer_runBar=undefined;
+     
         function runSvgsBar(percent=100){
             const existingSVGs = document.querySelectorAll('.progress-circle');
             let len=existingSVGs.length;
             if(len<1){
-                Graph_index=(Graph_index+1)%pointGraph.length;
+                // Graph_index=(Graph_index+1)%pointGraph.length;
                 generate_timeout=setTimeout(function() {
                     console.log("runBar 前面点击 产生的")
                     generateRandomProgressCircles(Graph_index); // 传递参数给 generateRandomProgressCircles
@@ -1144,25 +1020,34 @@
             }
             if (percent > 0) {
                 percent -= 1;
+                g_percent=percent;
                 for(let progressCircle of existingSVGs){
                     const progressBar = progressCircle.querySelector('.progress-value');
                     progressBar.style.strokeDasharray = `calc(2 * 3.1415 * var(--r) * ${percent} / 100), 1000`;
-                }         
+                }
                 timer_runBar=setTimeout(() => {
                     runSvgsBar(percent);
                 }, 30);
+                if(len==1){
+                    const badSvg = existingSVGs[0].querySelector('svg');
+                    let the_score=parseInt(badSvg.getAttribute('svg_score'));
+                    if(the_score<0){
+                        existingSVGs[0].remove();
+                    }
+                }
             } 
             else {
                 for(let progressCircle of existingSVGs){
                     progressCircle.remove();
                 }
-                Graph_index=(Graph_index+1)%pointGraph.length;
+                // Graph_index=(Graph_index+1)%pointGraph.length;
                 generate_timeout=setTimeout(function() {
                     console.log("runBar 产生的")
                     generateRandomProgressCircles(Graph_index); // 传递参数给 generateRandomProgressCircles
                 }, 200);
             }
         }
+        
         document.addEventListener("keydown", function(event) {
         // 如果按下的是空格键
         if (event.keyCode === 32) {
@@ -1186,7 +1071,6 @@
             for(let progressCircle of existingSVGs){
                     progressCircle.remove();
                 }
-            Graph_index=(Graph_index+1)%pointGraph.length;
             generateRandomProgressCircles(Graph_index);
         }
         if (event.keyCode === 37){
@@ -1197,13 +1081,8 @@
             for(let progressCircle of existingSVGs){
                     progressCircle.remove();
                 }
-            Graph_index-=1;
-            if(Graph_index<0){
-                Graph_index=pointGraph.length-1;
-            }
             generateRandomProgressCircles(Graph_index);
 
-            // Graph_index=(Graph_index-1)%pointGraph.length;
         }
         
 
@@ -1212,37 +1091,16 @@
         function generateRandomProgressCircles(Graph_index) {
             const existingSVGs = document.querySelectorAll('.progress-circle');
             if (existingSVGs.length === 0) {
-                let ball2r=2*ball_r;
+                // let ball2r=2*ball_r;
 
-                // console.log("球的直径",ball2r,"球的半径",ball_r);
-                if (player!=undefined && ball2r!=0){
-                    console.log("graph index",Graph_index);
-                    let points_in_G=pointGraph[Graph_index];
-                    // console.log(points_in_G);
-                    // console.log(pointGraph);
-                    Graph_index=(Graph_index+1)%pointGraph.length;
-                    // console.log("人的左下角",playerRect_LeftPoint.x,playerRect_LeftPoint.y);
-                    // console.log()
+                if (player!=undefined){
                     let index=1;
-                    let each_score=2*points_in_G.length;
-                    for(let point of points_in_G){
-                        let playerRect_LeftPoint=canvas_n2window_XY(player[0],player[1]);
-                        let playerRect_RightPoint=canvas_n2window_XY(player[2],player[3]);
-                        let xScale=playerRect_RightPoint.x-playerRect_LeftPoint.x;
-                        let yScale=playerRect_RightPoint.y-playerRect_LeftPoint.y;
-                        let player_center={
-                            x:(playerRect_LeftPoint.x+playerRect_RightPoint.x)/2.0,
-                            y:(playerRect_LeftPoint.y+playerRect_RightPoint.y)/2.0
-                        }
-                        let {rx,ry}={rx:point[0],ry:point[1]};
-                        let wx=rx*xScale+player_center.x;
-                        let wy=ry*yScale+player_center.y;
-
-                        let left=wx-ball_r;
-                        let top=wy-ball_r;
-
-                        createRandomProgressCircle(index,false,left,top,each_score);
-                        // console.log(index,"放在",left,top);
+                    let SvgNum=Math.floor(Math.random() * 3)+1;
+                    if(SvgNum==3){
+                        createRandomProgressCircle(index,true,0,0,-16,false);
+                    }
+                    for(let i=0;i<Math.min(SvgNum,2);i++){
+                        createRandomProgressCircle(index,true,0,0,8*Math.min(SvgNum,2));
                         index++;
                     }
                     runSvgsBar(100);
@@ -1258,154 +1116,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-<!-- [
-    [
-        [
-            -0.4569160443616049,
-            0.1622943131436253
-        ]
-    ],
-    [
-        [
-            -0.6608110346781607,
-            0.18067539023483425
-        ]
-    ],
-    [
-        [
-            0.6548588031622723,
-            0.14328595608708938
-        ]
-    ],
-    [
-        [
-            0.6699621843642641,
-            0.11380580513068757
-        ],
-        [
-            -0.7164254378620233,
-            0.16788900656455283
-        ]
-    ],
-    [
-        [
-            0.6447280105449277,
-            0.15186820422232652
-        ],
-        [
-            0.6397753364209473,
-            -0.22226505356002127
-        ]
-    ],
-    [
-        [
-            -0.6477648208070723,
-            -0.2504742353116721
-        ],
-        [
-            0.6895402912267452,
-            -0.2256929850017922
-        ]
-    ],
-    [
-        [
-            -0.41561084443625324,
-            0.1438306962118528
-        ],
-        [
-            -0.6908288618565326,
-            -0.1975228434101765
-        ],
-        [
-            0.7259885551770132,
-            -0.18285530850454243
-        ]
-    ],
-    [
-        [
-            0.6380025179206235,
-            0.12437331000396129
-        ],
-        [
-            -0.5982885287660238,
-            0.12974451996940475
-        ],
-        [
-            0.6305249511059865,
-            -0.21938412778442024
-        ]
-    ],
-    [
-        [
-            0.7244941140799679,
-            0.12163504736435851
-        ],
-        [
-            -0.5819574143534769,
-            0.16386130702348498
-        ],
-        [
-            -0.7012849080051192,
-            -0.17922705270691744
-        ]
-    ],
-    [
-        [
-            0.6956007559342213,
-            0.12118042430772048
-        ],
-        [
-            0.7622454776413742,
-            -0.19034975368800033
-        ],
-        [
-            -0.37071479138022434,
-            0.11446641185091615
-        ],
-        [
-            -0.5681806334754921,
-            -0.2078061860756916
-        ]
-    ],
-    [
-        [
-            -0.6401892039820858,
-            0.14612497862174365
-        ],
-        [
-            -0.3819670220697317,
-            -0.2379943775301515
-        ],
-        [
-            0.6736356938034563,
-            0.1682325674650182
-        ],
-        [
-            0.7262365086374545,
-            -0.26010196637342603
-        ]
-    ],
-    [
-        [
-            0.5933719932659184,
-            0.15194761568215892
-        ],
-        [
-            -0.582570252989365,
-            0.20413316092536224
-        ],
-        [
-            -0.36855559442596403,
-            -0.17588465571745174
-        ],
-        [
-            0.6628129197146815,
-            -0.1906036556578424
-        ]
-    ]
-] -->
