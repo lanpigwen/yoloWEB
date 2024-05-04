@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counter Drible</title>
+    <!-- 引入 Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+
+        /* 自定义CSS可以在此处添加 */
+        /* 可以进行与页面布局相匹配的调整 */
+        #topCanvasContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%; /* 固定画布高度为16:9的比例 */
+            background-color: black; /* 修改背景色为黑色 */
+            overflow: hidden; /* 隐藏视频溢出部分 */
+        }
+        #resultCanvas {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            object-fit: contain;
+            
+        }
+        #bottomControls {
+            padding: 10px; /* 控制栏内边距 */
+            border-top: 1px solid #dee2e6; /* 控制栏上边框 */
+            position: fixed; /* 绝对定位 */
+            bottom: 20px; /* 底部对齐，并留出一定的间距 */
+            left: 50%; /* 左侧居中 */
+            transform: translateX(-50%); /* 通过 transform 属性水平居中 */
+            width: 90%; /* 宽度90%，留出一定的边距 */
+            background-color: rgba(248, 249, 250, 0.8); /* 使用 rgba() 来定义背景色和透明度 */
+            border-radius: 10px; /* 圆角处理，应用于所有四个角 */
+            z-index: 99;
+        }
+
+        #videoElement {
+            /* display: none; */
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 6;
+            object-fit: contain;
+            opacity: 0.5;
+        }
+
+        #resultImg{
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            object-fit: contain;
+        }
+
+    </style>
+<style>
+    body {
+        background-color: black; /* 设置页面背景颜色为黑色 */
+        overflow: hidden;
+    }
+
+    .progress-circle { 
+        --size: 190px;
+        --border-width: calc(var(--size)*0.15);
+        --color: white;
+        --inactive-color: #3b3b3b;
+
+        position: absolute;
+        border-radius: 50%;
+        display: none;
+        
+    }
+    
+    .progress-circle > svg {
+        width: var(--size);
+        height: var(--size);
+        transform: rotate(90deg) scaleX(-1);
+        cursor: pointer; /* 添加鼠标指针样式为手型 */
+        transition: opacity 1s; /* 添加过渡效果，透明度变化需要1秒 */
+    }
+
+    .progress-circle > svg text{
+        dominant-baseline: middle; /* 基准线设置为中线 */
+        text-anchor: middle; /* 文本锚点设置为中心 */
+        transform: rotate(-90deg) scale(1, -1); /* 逆时针旋转90度并垂直翻转 */
+        font-weight: bold;
+        font-size:calc(var(--size)*0.6);
+    }
+
+    
+    .progress-circle circle {
+        --r: calc(var(--size) / 2 - var(--border-width) / 2);
+        cx: calc(var(--size) / 2);
+        cy: calc(var(--size) / 2);
+        r: var(--r);
+        fill: none;
+        stroke-width: var(--border-width);  
+        stroke-linecap: round;
+        transition: stroke-dasharray .3s linear, stroke .3s;
+    }
+    .progress-circle circle:first-child {
+        stroke-opacity: 0.5; /* 设置第一个圆圈的不透明度为 0.5 */
+    }
+
+    .progress-circle .background-circle {
+        fill: coral;
+        r: calc(var(--r) - var(--border-width) / 2 - var(--border-width)*0.2);
+    }
+
+    .progress-circle .fade-circle {
+        fill: none; /* 设置填充为透明 */
+        stroke: white; /* 设置边框颜色为白色 */
+        stroke-width: var(--border-width); /* 设置边框宽度为5像素 */
+        /* r: var(--border-width); */
+    }
+
+    .score-raise {
+        color: white; /* 设置文本颜色为白色 */
+        font-size: calc(var(--size)*0.75); /* 设置字体大小 */
+        font-weight: bold; /* 设置字体粗细 */
+    }
+
+    #scoreDisplay {
+        --canvasLeft:10px;
+        --canvasTop:10px;
+        --canvasWidth:200px;
+        --canvasHeight:200px;
+        --scoreDisplayWidth:calc(var(--canvasWidth)*0.2);
+        --scoreDisplayHeight:calc(var(--canvasHeight)*0.17);
+        --offset: calc(var(--canvasWidth)*0.15*0.15);
+
+        position: fixed;
+        left: var(--canvasLeft);
+        top: var(--canvasTop);
+        margin-left: var(--offset);
+        margin-top: var(--offset);
+        font-size: calc(var(--scoreDisplayWidth)*0.35); /* 字体大小 */
+        width:var(--scoreDisplayWidth);
+        height:var(--scoreDisplayHeight);
+        border-radius: 10%; /* 圆角 */
+        background-color: rgba(0, 0, 0, 0.5); /* 背景色为透明黑色 */
+        color: white; /* 文本颜色为白色 */
+        display: flex; /* 使用 Flexbox 布局 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        transition: transform 0.2s ease-in-out; /* 变换效果 */
+        z-index: 99;
+    }
+
+    #score {
+        display: grid;
+        place-items: center;
+        font-weight: bold;
+    }
+
+
+    #TimeDisplay {
+        --canvasLeft:10px;
+        --canvasTop:10px;
+        --canvasWidth:200px;
+        --canvasHeight:200px;
+        --scoreDisplayWidth:calc(var(--canvasWidth)*0.175);
+        --scoreDisplayHeight:calc(var(--canvasHeight)*0.17);
+        --offset: calc(var(--canvasWidth)*0.15*0.15);
+
+        position: fixed;
+        right: var(--canvasLeft);
+        top: var(--canvasTop);
+        margin-right: var(--offset);
+        margin-top: var(--offset);
+        font-size: calc(var(--scoreDisplayWidth)*0.35); /* 字体大小 */
+        width:var(--scoreDisplayWidth);
+        height:var(--scoreDisplayHeight);
+        border-radius: 10%; /* 圆角 */
+        background-color: rgba(0, 0, 0, 0.5); /* 背景色为透明黑色 */
+        color: white; /* 文本颜色为白色 */
+        display: flex; /* 使用 Flexbox 布局 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        transition: transform 0.2s ease-in-out; /* 变换效果 */
+        z-index: 99;
+    }
+
+    #Time {
+        display: grid;
+        place-items: center;
+        font-weight: bold;
+    }
+
+    #TaskDisplay{
+        --canvasLeft:10px;
+        --canvasTop:10px;
+        --canvasWidth:200px;
+        --canvasHeight:200px;
+        --scoreDisplayWidth:calc(var(--canvasWidth)*0.175);
+        --scoreDisplayHeight:calc(var(--canvasHeight)*0.17);
+        --offset: calc(var(--canvasWidth)*0.15*0.25);
+
+        position: fixed;
+        right: var(--canvasLeft);
+        bottom: var(--canvasTop);
+        margin-right: var(--offset);
+        margin-bottom: var(--offset);
+        font-size: calc(var(--scoreDisplayWidth)*0.35); /* 字体大小 */
+
+        border-radius: 10%; /* 圆角 */
+        color: white; /* 文本颜色为白色 */
+        display: flex; /* 使用 Flexbox 布局 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        transition: transform 0.2s ease-in-out; /* 变换效果 */
+        z-index: 99;
+    }
+
+    #Task {
+        display: grid;
+        place-items: center;
+        font-weight: bold;
+    }
+
+  
+</style>
+</head>
+<body>
+    <div id="topCanvasContainer">
+        <!-- 用于结果的画布 -->
+        <canvas id="resultCanvas"></canvas>
+        <video id="videoElement" autoplay></video>
+        <img id="resultImg">
+
+    </div>
+
+    <div id="bottomControls" class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <!-- 用于上传MP4的文件输入 -->
+                <input type="file" id="fileInput" class="form-control mb-3" accept=".mp4">
+                <!-- 文件开始/停止录制按钮 -->
+                <div id="modeButtons" class="mb-3">
+                    <button id="realTimeModeButton" class="btn btn-primary mr-2">实时模式</button>
+                    <button id="postProcessingModeButton" class="btn btn-primary">后处理模式</button>
+                </div>
+                <div class="mb-3">
+                    <button id="startButtonFile" class="btn btn-primary mr-2">开始录制</button>
+                    <button id="stopButtonFile" class="btn btn-danger" disabled>停止录制</button>
+                    <button id="playButtonFile" class="btn btn-danger">继续录制</button>
+                    <button id="pauseButtonFile" class="btn btn-danger">暂停录制</button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <!-- 开始/停止录制按钮 -->
+                <div class="mt-3">
+                    <button id="startButton" class="btn btn-primary mr-2">开始录制</button>
+                    <button id="stopButton" class="btn btn-danger" disabled>停止录制</button>
+                </div>
+                <!-- 跳转帧按钮 -->
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="jumpFrame">
+                    <label class="form-check-label" for="jumpFrame">跳转帧</label>
+                </div>
+                <div id="jumptext"></div>
+                <div>
+                    <label for="fpsDelayInput">FPS:</label>
+                    <input type="number" id="fpsDelayInput" value="15">
+                    <button id="updateFpsDelayButton">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        // 你的JavaScript代码放在这里
+        let videoStream;
+        let audioStream;
+        let audio_mediaRecorder;
+        let mediaSource;
+        let sourceBuffer;
+        // let vidio_mediaRecorder;
+        let dingshi;
+        let jump=false;
+        let jpcount=0;
+        let audioChunks = [];
+        let audioContext;
+        let mediaRecorder;
+        let width;
+        let height;
+        let resetCanvasSize=1;
+        let all_frame=[];
+        let frameCount=0;
+        let originTime=Date.now();
+        let lastFrame=Date.now();
+        let ct1,ct2,ct3;
+        let worker = new Worker('static/worker.js');
+        let uniqueIdentifier;
+        let points=[];
+
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const startButtonFile = document.getElementById('startButtonFile');
+        const stopButtonFile= document.getElementById('stopButtonFile');
+        var resultCanvas = document.getElementById("resultCanvas");
+        var resultContext = resultCanvas.getContext("2d");
+        const video = document.getElementById("videoElement");
+        const jumpFrame = document.getElementById("jumpFrame");
+        const jumptext=document.getElementById("jumptext");
+
+        let fileInput = document.getElementById('fileInput');
+        const topCanvasContainer = document.getElementById('topCanvasContainer');
+        const bottomControls = document.getElementById('bottomControls');
+        const blobURLPattern = /blob:(.*\/)([a-zA-Z0-9\-]+)$/; // 更精确的正则表达式
+        const imgElement=document.getElementById('resultImg');
+        const realTimeModeButton=document.getElementById('realTimeModeButton');
+        const postProcessingModeButton=document.getElementById('postProcessingModeButton');
+        let tempCanvas=document.createElement("canvas");
+        let tempContext=tempCanvas.getContext("2d");
+        let timer; // 用于存储定时器引用
+        let fps=15;
+        let points_and_time=[];
+        var player=undefined;
+        var ball_r=0;
+        let temp_point=[];
+        // 设置初始时间
+        var minutes = 0;
+        var seconds = 0;
+        var g_balls = [];
+        var hands=[];
+        let dc=0;
+        let keypoints=undefined;
+        const task=['LEFT HAND ×10','RIGHT HAND ×10','CROSSOVER ×10'];
+        let taskID=0;
+
+        const playButtonFile=document.getElementById("playButtonFile");
+        const pauseButtonFile=document.getElementById("pauseButtonFile");
+
+        // 获取元素
+        const fpsDelayInput = document.getElementById('fpsDelayInput');
+        const updateFpsDelayButton = document.getElementById('updateFpsDelayButton');
+
+        let updateCountdownTimer=undefined;
+
+        function updateCountdown() {
+            var countdownElement = document.getElementById('Time');
+            // 如果时间不为 0，则继续倒计时
+            seconds++;
+                // 如果秒数为负数，则减少分钟，并将秒数重置为 59
+                if (seconds > 59) {
+                    minutes++;
+                    seconds = 0;
+                }
+                // 格式化时间，并更新到页面上
+                countdownElement.innerHTML = (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+                // 每秒调用一次更新倒计时函数
+                updateCountdownTimer=setTimeout(updateCountdown, 1000);
+        }
+        // 添加点击事件监听器
+        updateFpsDelayButton.addEventListener('click', function() {
+            // 获取输入框中的值并转换为整数
+            const newFpsDelay = parseInt(fpsDelayInput.value);
+            
+            // 更新 fps_delay 变量的值
+            fps = newFpsDelay;
+            
+            // 可以在这里执行任何其他相关的操作
+            console.log('FPS Delay updated to:', fps);
+        });
+
+        startButtonFile.addEventListener('click',async () =>{
+            ct1=0,ct2=0,ct3=0;
+            capCost=0;
+            frameCount=0;
+            resetCanvasSize=1;
+            let file = fileInput.files[0];
+            let videoURL = URL.createObjectURL(file);
+            video.src = videoURL;
+
+            const formData = new FormData();
+            formData.append('mp4File', file);
+
+            try {
+                const response = await fetch('/upload_mp4', {
+                    method: 'POST',
+                    body: formData
+                });
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Error uploading file.');
+            }
+            startButtonFile.disabled = true;
+            stopButtonFile.disabled = false;
+        })
+        stopButtonFile.addEventListener('click',async () =>{
+            clearInterval(dingshi); // 停止发送帧数据
+            startButtonFile.disabled = false; // 启用开始录制按钮
+            stopButtonFile.disabled = true; // 禁用停止录制按钮
+            const formData = new FormData();
+                // formData.append('audio', blob, 'audio.wav');
+                formData.append('isFromCamera',false);
+                formData.append('imgWidth',width);
+                formData.append('imgHeight',height);
+                formData.append('fps',fps);
+                await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                video.pause();
+                console.log(frameCount);
+        })
+
+        function EveryFrame(){
+            let ct0=Date.now();
+            let ct00=Date.now();
+            // while(ct0-lastFrame<(1000/fps)){
+            //     ct0=Date.now();
+            // }
+            if((1000/fps)-(ct0-lastFrame)>=10){
+                dingshi=setTimeout(EveryFrame,9);
+                return;
+            }
+            else{
+                while(ct0-lastFrame<(1000/fps)){
+                    ct0=Date.now();
+                }
+            }
+            ct1=ct0-lastFrame;
+            lastFrame=Date.now();
+            // console.log('frame gap',ct1,"cap",ct2,"send",ct3,"wait",lastFrame-ct00);
+            const {imageData,imageWidth,imageHeight} = captureFrame(video);
+            ct2=Date.now()-lastFrame;
+            temp=Date.now();
+            // all_frame.push(imageData);
+            sendData(imageData,imageWidth,imageHeight,false);
+            ct3=Date.now()-temp;
+            
+            dingshi=setTimeout(EveryFrame,0);
+        }
+        function canvas_n2window_XY(nx,ny){
+            const rect = resultCanvas.getBoundingClientRect();
+            let realVideo={};
+            if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+                realVideo.height=rect.height;
+                realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+            }
+            else{
+                realVideo.width=rect.width;
+                realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+            }
+            realVideo.left=(rect.width-realVideo.width)*0.5;
+            realVideo.top=(rect.height-realVideo.height)*0.5;
+            // let scale=resultCanvas.width/realVideo.width;
+            let x = nx*realVideo.width+realVideo.left;
+            let y = ny*realVideo.height+realVideo.top;
+            return {x:x,y:y}; 
+        }
+        function canvas2window_XY(cx,cy){
+            const rect = resultCanvas.getBoundingClientRect();
+            let realVideo={};
+            if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+                realVideo.height=rect.height;
+                realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+            }
+            else{
+                realVideo.width=rect.width;
+                realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+            }
+            realVideo.left=(rect.width-realVideo.width)*0.5;
+            realVideo.top=(rect.height-realVideo.height)*0.5;
+            let scale=resultCanvas.width/realVideo.width;
+            let x = cx/scale + realVideo.left;
+            let y = cy/scale + realVideo.top;
+            return {x:x,y:y};            
+        }
+        function window2canvas_XY(wx,wy){
+            const rect = resultCanvas.getBoundingClientRect();
+            let realVideo={};
+            if (resultCanvas.height*rect.width>resultCanvas.width*rect.height){
+                realVideo.height=rect.height;
+                realVideo.width=realVideo.height*(resultCanvas.width/resultCanvas.height);
+            }
+            else{
+                realVideo.width=rect.width;
+                realVideo.height=realVideo.width*(resultCanvas.height/resultCanvas.width);
+            }
+            realVideo.left=(rect.width-realVideo.width)*0.5;
+            realVideo.top=(rect.height-realVideo.height)*0.5;
+            let scale=resultCanvas.width/realVideo.width;
+            let x = (wx - realVideo.left)*scale;
+            let y = (wy - realVideo.top)*scale;
+            return {x:x,y:y};
+            
+        }
+        
+        video.addEventListener('play',() =>{
+            let match = blobURLPattern.exec(video.src);
+            if (match) {
+                 uniqueIdentifier = match[2];
+                console.log(uniqueIdentifier); // 这里就是提取到的唯一标识符
+            } else {
+                uniqueIdentifier = Math.random().toString(36).substr(2, 9);
+                console.error('Failed to extract unique identifier from video src.');
+                console.log(uniqueIdentifier)
+            }
+            originTime=Date.now();
+            EveryFrame();
+            // bottomControls.style.display = 'none';
+            const scoreDisplayDiv=document.querySelectorAll('#scoreDisplay');
+            if (scoreDisplayDiv.length<1){
+                const scoreDisplay=document.createElement("div");
+                const scoreSpan=document.createElement("span");
+                scoreDisplay.setAttribute('id',"scoreDisplay");
+                scoreSpan.setAttribute('id','score');
+                scoreSpan.innerHTML="0/10";
+                scoreDisplay.appendChild(scoreSpan);
+                let left_top=canvas_n2window_XY(0,0);
+                let right_bottom=canvas_n2window_XY(1,1);
+                let width=right_bottom.x-left_top.x;
+                let height=right_bottom.y-left_top.y;
+                scoreDisplay.style.setProperty('--canvasLeft',left_top.x+'px');
+                scoreDisplay.style.setProperty('--canvasTop',left_top.y+'px');
+                scoreDisplay.style.setProperty('--canvasWidth',width+'px');
+                scoreDisplay.style.setProperty('--canvasHeight',height+'px');
+                console.log("scoreDisplay",left_top.x,left_top.y);
+                // scoreDisplay.style.left=left_top.x+'px';
+                // scoreDisplay.style.top=left_top.y+'px';
+                topCanvasContainer.appendChild(scoreDisplay);
+            }
+
+            const TimeDisplayDiv=document.querySelectorAll('#TimeDisplay');
+            if (TimeDisplayDiv.length<1){
+                const TimeDisplay=document.createElement("div");
+                const TimeSpan=document.createElement("span");
+                TimeDisplay.setAttribute('id',"TimeDisplay");
+                TimeSpan.setAttribute('id','Time');
+
+                TimeSpan.innerHTML='00:00';
+                TimeDisplay.appendChild(TimeSpan);
+                let left_top=canvas_n2window_XY(0,0);
+                let right_bottom=canvas_n2window_XY(1,1);
+                let width=right_bottom.x-left_top.x;
+                let height=right_bottom.y-left_top.y;
+                TimeDisplay.style.setProperty('--canvasLeft',left_top.x+'px');
+                TimeDisplay.style.setProperty('--canvasTop',left_top.y+'px');
+                TimeDisplay.style.setProperty('--canvasWidth',width+'px');
+                TimeDisplay.style.setProperty('--canvasHeight',height+'px');
+                console.log("TimeDisplay",left_top.x,left_top.y);
+                topCanvasContainer.appendChild(TimeDisplay);
+                // setTimeout(updateCountdown(),500);
+                updateCountdown();
+            }
+
+            const TaskDisplayDiv=document.querySelectorAll('#TaskDisplay');
+            if (TaskDisplayDiv.length<1){
+                const TaskDisplay=document.createElement("div");
+                const TaskSpan=document.createElement("span");
+                TaskDisplay.setAttribute('id',"TaskDisplay");
+                TaskSpan.setAttribute('id','Task');
+
+                taskID=Math.floor(Math.random() * 3);
+                TaskSpan.innerHTML=task[taskID];
+                TaskDisplay.appendChild(TaskSpan);
+                let left_top=canvas_n2window_XY(0,0);
+                let right_bottom=canvas_n2window_XY(1,1);
+                let width=right_bottom.x-left_top.x;
+                let height=right_bottom.y-left_top.y;
+                TaskDisplay.style.setProperty('--canvasLeft',left_top.x+'px');
+                TaskDisplay.style.setProperty('--canvasTop',left_top.y+'px');
+                TaskDisplay.style.setProperty('--canvasWidth',width+'px');
+                TaskDisplay.style.setProperty('--canvasHeight',height+'px');
+                console.log("TaskDisplay",left_top.x,left_top.y);
+                topCanvasContainer.appendChild(TaskDisplay);
+            }
+
+            g_balls=[];
+            dc=0;
+
+        })
+
+        video.addEventListener('ended', async () => {
+            bottomControls.style.display = 'block';
+            console.log('all frame',frameCount,Date.now()-originTime);
+            clearTimeout(dingshi);
+            clearTimeout(updateCountdownTimer);
+            startButtonFile.disabled = false; // 启用开始录制按钮
+            stopButtonFile.disabled = true; // 禁用停止录制按钮
+            const formData = new FormData();
+                // formData.append('audio', blob, 'audio.wav');
+                formData.append('isFromCamera',false);
+                formData.append('imgWidth',width);
+                formData.append('imgHeight',height);
+                formData.append('uuid',uniqueIdentifier)
+                formData.append('fps',fps);
+                await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                console.log(points_and_time);
+        });
+
+        startButton.addEventListener('click', async () => {
+            resetCanvasSize=1;
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            video.srcObject = videoStream;
+
+            audio_mediaRecorder = new MediaRecorder(audioStream);
+            audio_mediaRecorder.addEventListener('dataavailable', event => {
+                audioChunks.push(event.data);
+                console.log("这",event.data);
+            });
+            audio_mediaRecorder.addEventListener('stop', async () => {
+                const blob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('audio', blob, 'audio.wav');
+                formData.append('isFromCamera',true);
+                formData.append('imgWidth',width);
+                formData.append('imgHeight',height);
+                formData.append('uuid',uniqueIdentifier);
+                formData.append('fps',fps);
+                await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                //一定要清空！！！
+                audioChunks=[];
+            });
+
+            audio_mediaRecorder.start();
+
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            generateRandomProgressCircles(Graph_index);
+
+        });
+
+        stopButton.addEventListener('click', () => {
+            audio_mediaRecorder.stop();
+            clearTimeout(dingshi);
+            videoStream.getTracks().forEach(track => track.stop());
+            audioStream.getTracks().forEach(track => track.stop());
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        });
+
+        jumpFrame.addEventListener("click", () => {
+            jump=!jump;
+            jumptext.innerText=jump;
+
+        });   
+
+        function captureFrame(video) {
+            frameCount++;
+
+            // const canvas = document.createElement("canvas");
+            const maxWidth = 640;
+            const maxHeight = 640;
+            width = video.videoWidth;
+            height = video.videoHeight;
+            if(resetCanvasSize){
+                resultCanvas.width=width;
+                resultCanvas.height=height;
+                resetCanvasSize=0;
+
+            }
+
+            // 如果视频的宽度或高度大于最大宽度或高度，进行等比例缩放
+            if (width > maxWidth || height > maxHeight) {
+                const aspectRatio = width / height;
+                if (aspectRatio > 1) {
+                    // 宽度大于高度，按照宽度进行缩放
+                    width = maxWidth;
+                    height = maxWidth / aspectRatio;
+                } else {
+                    // 高度大于宽度，按照高度进行缩放
+                    height = maxHeight;
+                    width = maxHeight * aspectRatio;
+                }
+            }
+            //得是偶数
+            width=width-width%2
+            height=height-height%2
+
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            for(let obj of points_and_time){
+                if (obj.frame==frameCount){
+                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    for(let p of obj.points){
+                        resultContext.beginPath();
+                        resultContext.arc(p[0], p[1], 80, 0, 2 * Math.PI);
+                        resultContext.fillStyle = 'red';
+                        resultContext.fill();
+                    }
+                }
+            }
+            tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height); 
+            let data=tempCanvas.toDataURL("image/jpeg");
+            return {
+                imageData:data,
+                imageWidth:width,
+                imageHeight:height
+            }
+        }
+        
+        function calculateDistance(x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function newDribleTask(){
+            let newTaskId=Math.floor(Math.random() * 3);
+            while(newTaskId==taskID){
+                newTaskId=Math.floor(Math.random() * 3);
+            }
+            taskID=newTaskId;
+            let TaskSpan=document.getElementById('Task');
+            TaskSpan.innerHTML=task[taskID];
+        }
+
+        function updateScore(){
+            dc++;
+            if(dc>10){
+                dc=0;
+                newDribleTask();
+            }
+            const scoreSpan=document.getElementById('score');
+            scoreSpan.innerHTML=dc+"/10";
+            setTimeout(() => {
+                scoreSpan.style.transition='transform 0.1s ease-out';
+                scoreSpan.style.transform = 'scale(1.1)';
+                setTimeout(()=>{
+                    scoreSpan.style.transform = 'scale(1)'; 
+                },100)
+            }, 50);
+        }
+
+        function judgeCounter(g_balls){
+            for(let idx = 1; idx < g_balls.length - 1; idx++){
+                if (g_balls[idx].y>g_balls[idx-1].y && g_balls[idx].y>g_balls[idx+1].y){
+                    // console.log(hands);
+                    let nowDoing=0;
+                    let dis_0_left=calculateDistance(g_balls[idx-1].x,g_balls[idx-1].y,hands[idx-1].left.x,hands[idx-1].left.y);
+                    let dis_0_right=calculateDistance(g_balls[idx-1].x,g_balls[idx-1].y,hands[idx-1].right.x,hands[idx-1].right.y);
+                    let dis_2_left=calculateDistance(g_balls[idx+1].x,g_balls[idx+1].y,hands[idx+1].left.x,hands[idx+1].left.y);
+                    let dis_2_right=calculateDistance(g_balls[idx+1].x,g_balls[idx+1].y,hands[idx+1].right.x,hands[idx+1].right.y);
+                    if(dis_0_left<dis_0_right && dis_2_left<dis_2_right){
+                        nowDoing=1;
+                        console.log("右手运球");
+                    }
+                    else if(dis_0_left>dis_0_right && dis_2_left>dis_2_right){
+                        nowDoing=0;
+                        console.log("左手运球");
+                    }
+                    else{
+                        nowDoing=2;
+                        console.log("交叉运球");
+                    }
+                    if(nowDoing==taskID){
+                        updateScore();
+                    }
+                    return [];
+                }
+            }
+            return g_balls;
+        }
+
+      // 发送数据到服务器
+        function sendData(imageData,imageWidth,imageHeight,flipFrame) {
+        if(jump){
+            jpcount++;
+        }
+        else{
+            jpcount=1;
+        }
+        fetch("/process_frame", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            image_data: imageData,
+            jumpORnot:jpcount%2,
+            imgWidth:imageWidth,
+            imgHeight:imageHeight,
+            imgFlip:flipFrame,
+            uuid:uniqueIdentifier
+        }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if(resultCanvas.width==0 || resultCanvas.height==0){
+                resultCanvas.width=video.videoWidth;
+                resultCanvas.height=video.videoHeight;
+            }
+            if(video.style.zIndex<imgElement.style.zIndex || video.style.zIndex<resultCanvas.style.zIndex){
+                imgElement.src = "data:image/jpeg;base64," + data.image_data;
+
+                let extra_data=data.extra_data;
+                if(extra_data.player.length>=1){
+                    player=extra_data.player[0];
+                }
+                
+                if (extra_data.ball.length>=1){
+                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    let ball=extra_data.ball[0];
+                    let bp1=canvas_n2window_XY(ball[0],ball[1]);
+                    let bp2=canvas_n2window_XY(ball[2],ball[3]);
+                    let cx,cy;
+                    cx=(bp1.x+bp2.x)/2.0;
+                    cy=(bp1.y+bp2.y)/2.0;
+                    let window_ball={x:cx,y:cy};
+                    g_balls.push({x:cx,y:cy});
+                    if (g_balls.length>5){
+                        g_balls.shift();
+                    }
+                    if (g_balls.length==5){
+                        g_balls=judgeCounter(g_balls); 
+                    }
+                       
+                }
+                if(extra_data.coordinates.length>=1){
+                    let keypoints=extra_data.coordinates[0];
+                    // console.log(keypoints);
+                    let l_h=canvas_n2window_XY(keypoints[9][0],keypoints[9][1]);
+                    let r_h=canvas_n2window_XY(keypoints[10][0],keypoints[10][1]);
+                    let hand={left:l_h,right:r_h};
+                    hands.push(hand);
+                    if(hands.length>5){
+                        hands.shift();
+                    }
+                }
+
+            }
+
+            // console.log(player);
+            })
+          .catch((error) => {
+            console.error("Error sending data to server: ", error);
+            // alert("An error occurred while processing the frame. Please try again later.");
+          });
+      }
+
+        bottomControls.addEventListener('click',()=>{
+            if (timer) {
+                    clearTimeout(timer);
+                }
+        })
+        // 点击 #topCanvasContainer 时触发的函数
+        topCanvasContainer.addEventListener('click', () => {
+            // 显示 #bottomControls
+            if (bottomControls.style.display==='block'){
+                bottomControls.style.display='none';
+            }
+            else{
+                bottomControls.style.display = 'block';
+                            // 如果之前已经设置了定时器，则清除之前的定时器
+                if (timer) {
+                    clearTimeout(timer);
+                }
+                // 设置一个定时器，在 6 秒后隐藏 #bottomControls
+                timer = setTimeout(() => {
+                    bottomControls.style.display = 'none';
+                }, 3000);
+            }
+        });
+        
+        realTimeModeButton.addEventListener('click',() =>{
+            video.style.zIndex="5";
+            resultCanvas.style.zIndex="7";
+            imgElement.style.zIndex="6";
+        })
+
+        postProcessingModeButton.addEventListener('click',() =>{
+            video.style.zIndex="6";
+            resultCanvas.style.zIndex="7";
+            imgElement.style.zIndex="5";
+
+        })
+    </script>
+    <script>
+    </script>
+</body>
+</html>
