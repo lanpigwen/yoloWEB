@@ -30,7 +30,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     model.predict("test.png")
-    return render_template('drible.html')
+    return render_template('counter.html')
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
