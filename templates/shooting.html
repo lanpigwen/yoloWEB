@@ -27,6 +27,14 @@
             object-fit: contain;
             
         }
+        #BalltempCanvas {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            object-fit: contain;
+            
+        }
         #bottomControls {
             padding: 10px; /* 控制栏内边距 */
             border-top: 1px solid #dee2e6; /* 控制栏上边框 */
@@ -164,6 +172,7 @@
     <div id="topCanvasContainer">
         <!-- 用于结果的画布 -->
         <canvas id="resultCanvas"></canvas>
+        <canvas id="BalltempCanvas"></canvas>
         <video id="videoElement" autoplay></video>
         <img id="resultImg">
     </div>
@@ -205,6 +214,7 @@
             </div>
         </div>
     </div>
+    <script src="https://cdn.bootcdn.net/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -240,6 +250,8 @@
         const stopButtonFile= document.getElementById('stopButtonFile');
         var resultCanvas = document.getElementById("resultCanvas");
         var resultContext = resultCanvas.getContext("2d");
+        var BalltempCanvas = document.getElementById("BalltempCanvas");
+        var BalltempContext = BalltempCanvas.getContext("2d");
         const video = document.getElementById("videoElement");
         const jumpFrame = document.getElementById("jumpFrame");
         const jumptext=document.getElementById("jumptext");
@@ -255,7 +267,7 @@
         let tempContext=tempCanvas.getContext("2d");
         let timer; // 用于存储定时器引用
         let fps=15;
-        let points_and_time=[];
+        // let points_and_time=[];
         var player=undefined;
         var ball_r=0;
         let temp_point=[];
@@ -265,6 +277,7 @@
         var seconds = 0;
         var makes=0;
         var attempts=0;
+        var shooting_balls=[];
 
         const playButtonFile=document.getElementById("playButtonFile");
         const pauseButtonFile=document.getElementById("pauseButtonFile");
@@ -368,6 +381,12 @@
             ct3=Date.now()-temp;
             
             dingshi=setTimeout(EveryFrame,0);
+        }
+        
+        function canvas_n2canvas_XY(nx,ny){
+            let x = nx*resultCanvas.width;
+            let y = ny*resultCanvas.height;
+            return {x:x,y:y};         
         }
         function canvas_n2window_XY(nx,ny){
             const rect = resultCanvas.getBoundingClientRect();
@@ -520,7 +539,7 @@
                     method: 'POST',
                     body: formData
                 });
-                console.log(points_and_time);
+                // console.log(points_and_time);
         });
 
         startButton.addEventListener('click', async () => {
@@ -585,6 +604,8 @@
                 resultCanvas.width=width;
                 resultCanvas.height=height;
                 resetCanvasSize=0;
+                BalltempCanvas.width = width;
+                BalltempCanvas.height = height;
 
             }
 
@@ -607,17 +628,17 @@
 
             tempCanvas.width = width;
             tempCanvas.height = height;
-            for(let obj of points_and_time){
-                if (obj.frame==frameCount){
-                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-                    for(let p of obj.points){
-                        resultContext.beginPath();
-                        resultContext.arc(p[0], p[1], 80, 0, 2 * Math.PI);
-                        resultContext.fillStyle = 'red';
-                        resultContext.fill();
-                    }
-                }
-            }
+            // for(let obj of points_and_time){
+            //     if (obj.frame==frameCount){
+            //         resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            //         for(let p of obj.points){
+            //             resultContext.beginPath();
+            //             resultContext.arc(p[0], p[1], 80, 0, 2 * Math.PI);
+            //             resultContext.fillStyle = 'red';
+            //             resultContext.fill();
+            //         }
+            //     }
+            // }
             tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
             
                             // 在这里应用水平翻转
@@ -638,6 +659,56 @@
             const dy = y2 - y1;
             return Math.sqrt(dx * dx + dy * dy);
         }
+// 多项式拟合
+function polynomialFit(x, y, degree) {
+    // 构建系数矩阵
+    const X = [];
+    for (let i = 0; i < x.length; i++) {
+        let row = [];
+        for (let j = 0; j <= degree; j++) {
+            row.push(Math.pow(x[i], j));
+        }
+        X.push(row);
+    }
+
+    // 计算系数
+    const Xt = numeric.transpose(X);
+    const XtX = numeric.dot(Xt, X);
+    const XtY = numeric.dot(Xt, y);
+    const coefficients = numeric.solve(XtX, XtY);
+
+    // 生成拟合曲线
+    const fittedPoints = [];
+    // for (let i = 0; i < x.length; i++) {
+    //     let yFit = 0;
+    //     for (let j = 0; j <= degree; j++) {
+    //         yFit += coefficients[j] * Math.pow(x[i], j);
+    //     }
+    //     fittedPoints.push({ x: x[i], y: yFit });
+    // }
+
+    for (let xi = x[0];;) {
+        let yFit = 0;
+        for (let j = 0; j <= degree; j++) {
+            yFit += coefficients[j] * Math.pow(xi, j);
+        }
+        fittedPoints.push({ x: xi, y: yFit });
+        if(x[0]<x[x.length-1]){
+            xi+=2;
+            if(xi>x[x.length-1]){
+                break;
+            }
+        }
+        else{
+            xi-=2;
+            if(xi<x[x.length-1]){
+                break;
+            }
+        }
+    }
+
+    return fittedPoints;
+}
 
       // 发送数据到服务器
         function sendData(imageData,imageWidth,imageHeight,flipFrame) {
@@ -676,18 +747,86 @@
                 }
                 
                 if (extra_data.ball.length>=1){
-                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
                     let ball=extra_data.ball[0];
-                    let bp1=canvas_n2window_XY(ball[0],ball[1]);
-                    let bp2=canvas_n2window_XY(ball[2],ball[3]);
+                    let bp1=canvas_n2canvas_XY(ball[0],ball[1]);
+                    let bp2=canvas_n2canvas_XY(ball[2],ball[3]);
                     let cx,cy;
                     cx=(bp1.x+bp2.x)/2.0;
                     cy=(bp1.y+bp2.y)/2.0;
-                    ball_r = (bp2.x-bp1.x)/2.0;                
+                    ball_r = (bp2.x-bp1.x)/2.0;
+                    if (extra_data.ball_state=='shooting'){
+                        shooting_balls.push({x:cx,y:cy});
+                        //加上距离判断，过于离谱的点就不画
+                        if(shooting_balls.length>2 ){
+                            // 创建一个矩阵
+                            BalltempContext.clearRect(0, 0, BalltempCanvas.width, BalltempCanvas.height);
+
+                            // 降低透明度来清除画布
+                            // let points = shooting_balls;
+                            const degree = 3; // 多项式次数
+                            let points = polynomialFit(shooting_balls.map(point => point.x), shooting_balls.map(point => point.y), degree);
+                            // 定义颜色渐变
+                            const gradient = BalltempContext.createLinearGradient(0, 0, BalltempCanvas.width, 0);
+                            gradient.addColorStop(0, 'blue'); // 蓝色
+                            gradient.addColorStop(0.5, 'cyan'); // 青色
+                            gradient.addColorStop(1, 'magenta'); // 洋红色
+                            // 设置线条样式
+                            BalltempContext.lineCap = 'round';
+                            BalltempContext.lineJoin = 'round';
+                            BalltempContext.strokeStyle = gradient;
+                            // 增加阴影效果
+                            BalltempContext.shadowColor = 'rgba(255, 255, 255, 0.5)'; // 白色阴影
+                            BalltempContext.shadowBlur = 5; // 模糊半径
+                            BalltempContext.shadowOffsetX = 0; // 阴影在水平方向上的偏移量
+                            BalltempContext.shadowOffsetY = 0; // 阴影在垂直方向上的偏移量
+
+                            // 计算初始线宽和每步减少的线宽
+                            let initialLineWidth = 20;
+                            let lineWidthStep = initialLineWidth / points.length;
+                            // 绘制平滑曲线
+                            BalltempContext.lineWidth = initialLineWidth;
+                            // 使用新的点数组绘制平滑曲线
+                            BalltempContext.beginPath();
+                            BalltempContext.moveTo(points[0].x, points[0].y);
+                            for (let i = 1; i < points.length - 2; i++) {
+                                    const xc1 = (points[i].x + points[i + 1].x) / 2;
+                                    const yc1 = (points[i].y + points[i + 1].y) / 2;
+                                    const xc2 = (points[i + 1].x + points[i + 2].x) / 2;
+                                    const yc2 = (points[i + 1].y + points[i + 2].y) / 2;
+
+                                    BalltempContext.lineWidth -= lineWidthStep;
+                                    if (BalltempContext.lineWidth < 1) {
+                                        BalltempContext.lineWidth = 1;
+                                    }
+
+                                    BalltempContext.quadraticCurveTo(points[i].x, points[i].y, xc1, yc1);
+                                    if(i%2==0){
+                                        BalltempContext.stroke();
+                                    }
+                            }
+                                // 使用最后一个点绘制最后一段曲线
+                                BalltempContext.quadraticCurveTo(
+                                    points[points.length - 2].x,
+                                    points[points.length - 2].y,
+                                    points[points.length - 1].x,
+                                    points[points.length - 1].y
+                                );
+                            // 绘制样式
+                            BalltempContext.stroke();
+
+                        }
+                    }
+                    else{
+                        if(shooting_balls.length>0){
+                            shooting_balls=[];
+                            resultContext.globalAlpha = 0.85; // 设置透明度为 0.5，值在 0 到 1 之间
+                            resultContext.drawImage(BalltempCanvas, 0, 0);
+                            resultContext.globalAlpha = 1; // 恢复默认的透明度为 1
+                        }
+                    }
                 }
                 if(extra_data.coordinates.length>=1){
                     keypoints=extra_data.coordinates[0];
-                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
                     let left_hand=canvas_n2window_XY(keypoints[9][0],keypoints[9][1]);
                     let right_hand=canvas_n2window_XY(keypoints[10][0],keypoints[10][1]);
 
@@ -746,11 +885,13 @@
         realTimeModeButton.addEventListener('click',() =>{
             video.style.zIndex="5";
             resultCanvas.style.zIndex="7";
+            BalltempCanvas.style.zIndex="8";
             imgElement.style.zIndex="6";
         })
         postProcessingModeButton.addEventListener('click',() =>{
             video.style.zIndex="6";
             resultCanvas.style.zIndex="7";
+            BalltempCanvas.style.zIndex="8";
             imgElement.style.zIndex="5";
 
         })

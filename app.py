@@ -85,7 +85,8 @@ def process_frame():
     extra_data = {
     'ball': data['b_ball'],
     'coordinates': data['keypoints'],
-    'player':data['player']
+    'player':data['player'],
+    'ball_state':data['ball_state'],
     }
     response_data={
         'image_data': processed_data,  # 之前处理的图像数据

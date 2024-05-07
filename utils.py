@@ -223,7 +223,7 @@ def draw_ball_track(frame,shooting_balls_line,ball_cxy,ball_thickness,trace_colo
                 continue
             ball_cxy.append((i,fit_y))
             ball_thickness.append(thickness)
-            cv2.circle(frame,(i,fit_y),thickness,trace_color,-1)
+            # cv2.circle(frame,(i,fit_y),thickness,trace_color,-1)
 
     return frame,ball_cxy,ball_thickness
 
@@ -526,7 +526,7 @@ def manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting
     if ball_state=='shooting':
         if preBallStack[-1] is not None:
             shooting_balls_line.append(preBallStack[-1])
-            transparent_layer,ball_cxy,ball_thickness=draw_ball_track(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,0,255))
+            # transparent_layer,ball_cxy,ball_thickness=draw_ball_track(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,0,255))
     if score:
         score_count+=1
         # 变绿
