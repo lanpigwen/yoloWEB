@@ -55,7 +55,7 @@
             height: 100%;
             z-index: 6;
             object-fit: contain;
-            opacity: 0.5;
+            /* opacity: 0.5; */
             /* transform: scaleX(-1); */
         }
 
@@ -181,7 +181,7 @@
         <div class="row">
             <div class="col-md-6">
                 <!-- 用于上传MP4的文件输入 -->
-                <input type="file" id="fileInput" class="form-control mb-3" accept=".mp4">
+                <input type="file" id="fileInput" class="form-control mb-3" accept=".mp4,.mov">
                 <!-- 文件开始/停止录制按钮 -->
                 <div id="modeButtons" class="mb-3">
                     <button id="realTimeModeButton" class="btn btn-primary mr-2">实时模式</button>
@@ -278,6 +278,8 @@
         var makes=0;
         var attempts=0;
         var shooting_balls=[];
+        let ball_trace_r=undefined;
+        let pre_ball_state='normal';
 
         const playButtonFile=document.getElementById("playButtonFile");
         const pauseButtonFile=document.getElementById("pauseButtonFile");
@@ -679,13 +681,6 @@ function polynomialFit(x, y, degree) {
 
     // 生成拟合曲线
     const fittedPoints = [];
-    // for (let i = 0; i < x.length; i++) {
-    //     let yFit = 0;
-    //     for (let j = 0; j <= degree; j++) {
-    //         yFit += coefficients[j] * Math.pow(x[i], j);
-    //     }
-    //     fittedPoints.push({ x: x[i], y: yFit });
-    // }
 
     for (let xi = x[0];;) {
         let yFit = 0;
@@ -756,32 +751,44 @@ function polynomialFit(x, y, degree) {
                     ball_r = (bp2.x-bp1.x)/2.0;
                     if (extra_data.ball_state=='shooting'){
                         shooting_balls.push({x:cx,y:cy});
+                        if(shooting_balls.length==1){
+                            ball_trace_r=ball_r;
+                        }
                         //加上距离判断，过于离谱的点就不画
                         if(shooting_balls.length>2 ){
                             // 创建一个矩阵
                             BalltempContext.clearRect(0, 0, BalltempCanvas.width, BalltempCanvas.height);
 
                             // 降低透明度来清除画布
-                            // let points = shooting_balls;
-                            const degree = 3; // 多项式次数
-                            let points = polynomialFit(shooting_balls.map(point => point.x), shooting_balls.map(point => point.y), degree);
+                            let points = shooting_balls;
+                            // const degree = 3; // 多项式次数
+                            // let points = polynomialFit(shooting_balls.map(point => point.x), shooting_balls.map(point => point.y), degree);
                             // 定义颜色渐变
-                            const gradient = BalltempContext.createLinearGradient(0, 0, BalltempCanvas.width, 0);
-                            gradient.addColorStop(0, 'blue'); // 蓝色
-                            gradient.addColorStop(0.5, 'cyan'); // 青色
-                            gradient.addColorStop(1, 'magenta'); // 洋红色
+                            // const gradient = BalltempContext.createLinearGradient(0, 0, BalltempCanvas.width, 0);
+                            // gradient.addColorStop(0, 'blue'); // 蓝色
+                            // gradient.addColorStop(0.5, 'cyan'); // 青色
+                            // gradient.addColorStop(1, 'magenta'); // 洋红色
+                            // // 设置线条样式
+                            // BalltempContext.lineCap = 'round';
+                            // BalltempContext.lineJoin = 'round';
+                            // BalltempContext.strokeStyle = gradient;
+                            // 创建线性渐变，从左到右
+
                             // 设置线条样式
                             BalltempContext.lineCap = 'round';
                             BalltempContext.lineJoin = 'round';
-                            BalltempContext.strokeStyle = gradient;
+                            BalltempContext.strokeStyle = 'white';
                             // 增加阴影效果
                             BalltempContext.shadowColor = 'rgba(255, 255, 255, 0.5)'; // 白色阴影
-                            BalltempContext.shadowBlur = 5; // 模糊半径
+                            BalltempContext.shadowBlur = 3; // 模糊半径
                             BalltempContext.shadowOffsetX = 0; // 阴影在水平方向上的偏移量
                             BalltempContext.shadowOffsetY = 0; // 阴影在垂直方向上的偏移量
 
                             // 计算初始线宽和每步减少的线宽
-                            let initialLineWidth = 20;
+                            let initialLineWidth=20;
+                            if (ball_trace_r!=undefined){
+                                initialLineWidth=ball_trace_r*0.5;
+                            }
                             let lineWidthStep = initialLineWidth / points.length;
                             // 绘制平滑曲线
                             BalltempContext.lineWidth = initialLineWidth;
@@ -813,7 +820,6 @@ function polynomialFit(x, y, degree) {
                                 );
                             // 绘制样式
                             BalltempContext.stroke();
-
                         }
                     }
                     else{
@@ -824,6 +830,27 @@ function polynomialFit(x, y, degree) {
                             resultContext.globalAlpha = 1; // 恢复默认的透明度为 1
                         }
                     }
+                    //忘记score会直接加了
+                    if(extra_data.ball_state!='Judging' && pre_ball_state=='Judging'){
+                        let makesSpan=document.getElementById('makes');
+                        let attemptsSpan=document.getElementById('attempts');
+                        setTimeout(() => {
+                            makesSpan.style.transition='transform 0.2s ease-out';
+                            makesSpan.style.transform = 'scale(1.5)';
+                            setTimeout(()=>{
+                                makesSpan.style.transform = 'scale(1)'; 
+                            },200)
+                            attemptsSpan.style.transition='transform 0.2s ease-out';
+                            attemptsSpan.style.transform = 'scale(1.5)';
+                            setTimeout(()=>{
+                                attemptsSpan.style.transform = 'scale(1)'; 
+                            },200)
+                        }, 50);
+                        makesSpan.innerHTML=extra_data.score_count;
+                        attemptsSpan.innerHTML=extra_data.shooting_count;
+                        
+                    }
+                    pre_ball_state=extra_data.ball_state;
                 }
                 if(extra_data.coordinates.length>=1){
                     keypoints=extra_data.coordinates[0];

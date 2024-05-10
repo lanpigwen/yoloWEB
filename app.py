@@ -30,7 +30,7 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     model.predict("test.png")
-    return render_template('shooting.html')
+    return render_template('counter.html')
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -87,6 +87,8 @@ def process_frame():
     'coordinates': data['keypoints'],
     'player':data['player'],
     'ball_state':data['ball_state'],
+    'shooting_count':data['shooting_count'],
+    'score_count':data['score_count']
     }
     response_data={
         'image_data': processed_data,  # 之前处理的图像数据

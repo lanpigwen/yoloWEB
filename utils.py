@@ -316,6 +316,7 @@ def possible_balls(pre_n_frames,balls_tensors,r_scales,cxcy):
             else:
                 max_r_dst_ids=i
                 break
+        # frame=cv2.circle(frame,cxcy[r_idx],r,(0,255,0),2)
         for b_i,b in enumerate(balls_tensors):
             if b[-2]<0.3:
                 b2b=b2b_distance(pre_n_frames[min_r_dst_ids],b)
@@ -387,7 +388,9 @@ def update_pre_n_frames(pre_n_frames,balls_tensors,frame,clsNames,pre_n=3):
     else:
         p_balls,b2b_circle=possible_balls(pre_n_frames,balls_tensors,r_scales,cxcy)
         b_ball=get_best_p_ball(p_balls,b2b_circle)
-        
+        # for r_idx,r in enumerate(r_scales):
+        #     if r is not None:
+        #         frame=cv2.circle(frame,cxcy[r_idx],r,(255,255,255),2)
         if b_ball is not None:            
             pre_n_frames.append(b_ball)
         else:

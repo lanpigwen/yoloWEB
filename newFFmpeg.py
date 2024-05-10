@@ -126,7 +126,7 @@ def read_video(show_queue,save_queue,video_file,model,preset,model_predict,video
                 transparent_layer = np.zeros_like(frame, dtype=np.uint8)
                 score_layer = np.zeros_like(frame, dtype=np.uint8)
                 frame_idx=1
-            frame,preBallStack,rim_t_ls,b_ball,keypoints=predict(model,frame,preBallStack)
+            frame,preBallStack,rim_t_ls,b_ball,keypoints,person=predict(model,frame,preBallStack)
             score,frame,wait_frame=judge_shoot(preBallStack,frame,preBallStack,rim_t_ls,wait_frame)
             score_layer,transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,score_count,shooting_count,ball_state=manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting_balls_line,ball_cxy,ball_thickness,rim_t_ls,score,score_count,shooting_count,ball_state)
 
@@ -303,9 +303,9 @@ if __name__ == '__main__':
     # video_file=r"D:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-2.mp4"
     # video_file="https://play2nm.hnyongshun.cn/live/hd-en-4wyrn1to9720q86.m3u8"
 
-    video_file=r"C:\NBA-DATASETS\tiktok-shoot\shoot3.mp4"
+    # video_file=r"C:\NBA-DATASETS\tiktok-shoot\shoot3.mp4"
     # video_file=r"C:\NBA-DATASETS\tiktok-shoot\WeChat_20240417141747.mp4"
-    # video_file=r"C:\NBA-DATASETS\tiktok-shoot\练完核心后的各种离谱投篮，甚至可以干拔三分.mp4"
+    video_file=r"C:\NBA-DATASETS\tiktok-shoot\本月目标争取一分钟三分自投自抢出手12次.mp4"
     # video_file=r"C:\NBA-DATASETS\tiktok-shoot\tiktok-shoot-8.mp4"
     # video_file=r"C:\Users\78381\Downloads\1713182466649.mp4"
     # video_file=r"C:\NBA-DATASETS\CunBA-replay\CunBA-replay-8.mp4"
@@ -326,8 +326,8 @@ if __name__ == '__main__':
                 jump_frame=0,
                 show_fps=True,
                 fit_show_fps=False,
-                isCamera=True,
-                isFront=True
+                isCamera=False,
+                isFront=False
                 )
     t2 = time.time()
     # print(f'耗时{round(t2 - t0,3)}s')
