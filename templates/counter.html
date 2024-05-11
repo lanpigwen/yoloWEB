@@ -222,8 +222,42 @@
         display: grid;
         place-items: center;
         font-weight: bold;
+        justify-content: flex-end;
+        text-align: right;
     }
 
+
+    #LowHighTaskDisplay{
+        --canvasLeft:10px;
+        --canvasTop:10px;
+        --canvasWidth:200px;
+        --canvasHeight:200px;
+        --scoreDisplayWidth:calc(var(--canvasWidth)*0.175);
+        --scoreDisplayHeight:calc(var(--canvasHeight)*0.17);
+        --offset: calc(var(--canvasWidth)*0.15*0.25);
+
+        position: fixed;
+        right: var(--canvasLeft);
+        top:var(--canvasTop);
+        bottom: var(--canvasTop);
+        margin-right: var(--offset);
+        margin-bottom: var(--offset);
+        font-size: calc(var(--scoreDisplayWidth)*0.35); /* 字体大小 */
+
+        border-radius: 10%; /* 圆角 */
+        color: white; /* 文本颜色为白色 */
+        display: flex; /* 使用 Flexbox 布局 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        transition: transform 0.2s ease-in-out; /* 变换效果 */
+        z-index: 99;
+    }
+
+    #LowHighTask {
+        display: grid;
+        place-items: center;
+        font-weight: bold;
+    }
   
 </style>
 </head>
@@ -335,7 +369,12 @@
         let dc=0;
         let keypoints=undefined;
         const task=['LEFT HAND ×10','RIGHT HAND ×10','CROSSOVER ×10'];
+        const LowHighTask=['HIGH DRIBBLE','LOW DRIBBLE'];
         let taskID=0;
+        let dribleFallBall=undefined;
+        let knee=undefined;
+        let LowHighId=0;
+        
 
         const playButtonFile=document.getElementById("playButtonFile");
         const pauseButtonFile=document.getElementById("pauseButtonFile");
@@ -564,7 +603,12 @@
 
                 taskID=Math.floor(Math.random() * 3);
                 TaskSpan.innerHTML=task[taskID];
+                if (taskID<=1){
+                    LowHighId=Math.floor(Math.random() * 2);
+                    TaskSpan.innerHTML=LowHighTask[LowHighId]+'<br/>'+task[taskID];
+                }
                 TaskDisplay.appendChild(TaskSpan);
+
                 let left_top=canvas_n2window_XY(0,0);
                 let right_bottom=canvas_n2window_XY(1,1);
                 let width=right_bottom.x-left_top.x;
@@ -576,7 +620,6 @@
                 console.log("TaskDisplay",left_top.x,left_top.y);
                 topCanvasContainer.appendChild(TaskDisplay);
             }
-
             g_balls=[];
             dc=0;
 
@@ -690,7 +733,7 @@
             tempCanvas.height = height;
             for(let obj of points_and_time){
                 if (obj.frame==frameCount){
-                    resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    // resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
                     for(let p of obj.points){
                         resultContext.beginPath();
                         resultContext.arc(p[0], p[1], 80, 0, 2 * Math.PI);
@@ -722,6 +765,10 @@
             taskID=newTaskId;
             let TaskSpan=document.getElementById('Task');
             TaskSpan.innerHTML=task[taskID];
+            if (taskID<=1){
+                LowHighId=Math.floor(Math.random() * 2);
+                TaskSpan.innerHTML=LowHighTask[LowHighId]+'<br/>'+task[taskID];
+            }
         }
 
         function updateScore(){
@@ -741,15 +788,51 @@
             }, 50);
         }
 
+        function judgeHighLow(g_balls){
+            for(let idx = 1; idx < g_balls.length - 1; idx++){
+                if (g_balls[idx].y<g_balls[idx-1].y && g_balls[idx].y<g_balls[idx+1].y){
+                    dribleFallBall=g_balls[idx];
+                    // for(let newidx=idx-1;newidx<=idx+1;newidx++){
+                    //     let x,y;
+                    //     let thePoint=window2canvas_XY(g_balls[newidx].x,g_balls[newidx].y);
+                    //     resultContext.beginPath();
+                    //     resultContext.arc(thePoint.x, thePoint.y, 5, 0, Math.PI * 2);
+                    //     resultContext.fillStyle = 'yellow';
+                    //     resultContext.fill();
+                    // }
+                    // resultContext.lineWidth = 10;
+                    // let thePoint=window2canvas_XY(g_balls[idx-1].x,g_balls[idx-1].y);
+                    // resultContext.beginPath();
+                    // resultContext.moveTo(thePoint.x,thePoint.y);
+                    // for(let newidx=idx;newidx<=idx+1;newidx++){
+                    //     let thePoint2=window2canvas_XY(g_balls[newidx].x,g_balls[newidx].y);
+                    //     resultContext.lineTo(thePoint2.x,thePoint2.y);
+
+                    // }
+                    // resultContext.strokeStyle = 'red';
+                    // resultContext.stroke();
+                }
+            }
+        }
+
         function judgeCounter(g_balls){
             for(let idx = 1; idx < g_balls.length - 1; idx++){
                 if (g_balls[idx].y>g_balls[idx-1].y && g_balls[idx].y>g_balls[idx+1].y){
                     // console.log(hands);
                     let nowDoing=0;
+                    let nowDoingLowHigh=1;
                     let dis_0_left=calculateDistance(g_balls[idx-1].x,g_balls[idx-1].y,hands[idx-1].left.x,hands[idx-1].left.y);
                     let dis_0_right=calculateDistance(g_balls[idx-1].x,g_balls[idx-1].y,hands[idx-1].right.x,hands[idx-1].right.y);
                     let dis_2_left=calculateDistance(g_balls[idx+1].x,g_balls[idx+1].y,hands[idx+1].left.x,hands[idx+1].left.y);
                     let dis_2_right=calculateDistance(g_balls[idx+1].x,g_balls[idx+1].y,hands[idx+1].right.x,hands[idx+1].right.y);
+                    if (dribleFallBall.y<knee.y){
+                        console.log("高运球");
+                        nowDoingLowHigh=0;
+                    }
+                    else{
+                        console.log("低运球");
+                        nowDoingLowHigh=1;
+                    }
                     if(dis_0_left<dis_0_right && dis_2_left<dis_2_right){
                         nowDoing=1;
                         console.log("右手运球");
@@ -762,9 +845,38 @@
                         nowDoing=2;
                         console.log("交叉运球");
                     }
-                    if(nowDoing==taskID){
+                    // if(nowDoing==taskID){
+                    // if(nowDoing==taskID && (taskID==2 || nowDoingLowHigh==LowHighId)){
                         updateScore();
-                    }
+                        
+                    // }
+
+
+
+
+                    // resultContext.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    // for(let newidx=idx-1;newidx<=idx+1;newidx++){
+                    //     let x,y;
+                    //     let thePoint=window2canvas_XY(g_balls[newidx].x,g_balls[newidx].y);
+                    //     resultContext.beginPath();
+                    //     resultContext.arc(thePoint.x, thePoint.y, 5, 0, Math.PI * 2);
+                    //     resultContext.fillStyle = 'blue';
+                    //     resultContext.fill();
+                    // }
+                    // resultContext.lineWidth = 10;
+                    // let thePoint=window2canvas_XY(g_balls[idx-1].x,g_balls[idx-1].y);
+                    // resultContext.beginPath();
+                    // resultContext.moveTo(thePoint.x,thePoint.y);
+                    // for(let newidx=idx;newidx<=idx+1;newidx++){
+                    //     let thePoint2=window2canvas_XY(g_balls[newidx].x,g_balls[newidx].y);
+                    //     resultContext.lineTo(thePoint2.x,thePoint2.y);
+
+                    // }
+                    // resultContext.strokeStyle = 'green';
+                    // // resultContext.moveTo(window2canvas_XY(dribleFallBall.x,dribleFallBall.y).x,window2canvas_XY(dribleFallBall.x,dribleFallBall.y).y);
+                    // // resultContext.lineTo(window2canvas_XY(g_balls[idx].x,g_balls[idx].y).x,window2canvas_XY(g_balls[idx].x,g_balls[idx].y).y);
+                    // resultContext.stroke();
+
                     return [];
                 }
             }
@@ -821,6 +933,7 @@
                         g_balls.shift();
                     }
                     if (g_balls.length==5){
+                        judgeHighLow(g_balls);
                         g_balls=judgeCounter(g_balls); 
                     }
                        
@@ -835,6 +948,7 @@
                     if(hands.length>5){
                         hands.shift();
                     }
+                    knee=canvas_n2window_XY(keypoints[13][0],keypoints[13][1]);
                 }
 
             }

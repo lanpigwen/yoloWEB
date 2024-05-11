@@ -534,7 +534,7 @@ def manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting
         score_count+=1
         # 变绿
         transparent_layer,shooting_balls_line=judge_shoot_attempt(transparent_layer,shooting_balls_line,ball_cxy,ball_thickness,(0,255,0))
-        score_layer=draw_record(frame,video_size,score_count,shooting_count)
+        # score_layer=draw_record(frame,video_size,score_count,shooting_count)
         shooting_balls_line=[]
         ball_cxy=[]
         ball_thickness=[]    
@@ -542,7 +542,7 @@ def manage_shoot_score(frame,transparent_layer,score_layer,preBallStack,shooting
     if pre_ball_state=='Judging' and ball_state=='normal':
         if len(shooting_balls_line)>0:
             # 说明还未经过score的重置
-            score_layer=draw_record(frame,video_size,score_count,shooting_count)
+            # score_layer=draw_record(frame,video_size,score_count,shooting_count)
             shooting_balls_line=[]
             ball_cxy=[]
             ball_thickness=[]         
