@@ -7,6 +7,8 @@ import ffmpeg
 from werkzeug.utils import secure_filename
 import subprocess as sp
 import os
+from PIL import Image
+from io import BytesIO
 
 model = YOLO('pts/ball-rim-pose.engine')
 from collections import deque
@@ -147,6 +149,27 @@ def uploadmp4():
     audio_file.save('audiotemp.mp4')
     return 'File uploaded successfully.', 200  # 返回成功响应
 
+@app.route('/save_image', methods=['POST'])
+def save_image():
+    try:
+        # 获取前端发送的数据
+        data = request.json
+        image_data = data['image_data']
+
+        # 解码base64编码的图像数据
+        image_bytes = base64.b64decode(image_data.split(',')[1])
+        
+        # 将字节流转换为图像
+        image = Image.open(BytesIO(image_bytes))
+
+        # 保存图像到文件
+        image_path = 'static/saved_image.jpg'  # 图像保存路径
+        image.save(image_path)
+
+        return jsonify({'message': 'Image saved successfully', 'image_path': image_path}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/calculate_perspective_matrix', methods=['POST'])
 def calculate_perspective_matrix():
     # 获取 POST 请求中的数据
@@ -155,8 +178,7 @@ def calculate_perspective_matrix():
     # 解析数据并转换为 NumPy 数组
     src_points = np.array([[point['x'], point['y']] for point in data['src_points']], dtype=np.float32)
     dst_points = np.array([[point['x'], point['y']] for point in data['dst_points']], dtype=np.float32)
-    court_img=data['court_img']
-
+    court_img='saved_image.jpg'
     input_image = cv2.imread('static/'+court_img)
     # 定义输出图像的大小
     output_size = (input_image.shape[1], input_image.shape[0])  # 使用输入图像的大小
@@ -167,7 +189,7 @@ def calculate_perspective_matrix():
         inverse_perspective_matrix=cv2.getPerspectiveTransform(dst_points,src_points)
         inverse_perspective_matrix_list = inverse_perspective_matrix.tolist()
 
-        output_image = cv2.warpPerspective(input_image, perspective_matrix, output_size,borderMode=cv2.BORDER_CONSTANT,borderValue=(255, 255, 255))
+        output_image = cv2.warpPerspective(input_image, perspective_matrix, output_size,borderMode=cv2.BORDER_CONSTANT,borderValue=(0, 0, 0))
 
 
         retval, buffer = cv2.imencode('.jpg', output_image)

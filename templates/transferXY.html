@@ -1,269 +1,344 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Perspective Transform with HTML5 Canvas</title>
-<style>
-  canvas {
-    border: 1px solid black;
-    
-  }
-  /* #canvas{
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  } */
-  #overlayCanvas {
-    opacity: 0.5; /* 设置覆盖层的透明度 */
-    pointer-events: none; /* 防止覆盖层拦截鼠标事件 */
-    left: 10px;
-    top:10px;
-    border: 1px solid black;
-    position: absolute;
-  }
-  #copy_canvas {
-    opacity: 0.5; 
-    pointer-events: none; /* 防止覆盖层拦截鼠标事件 */
-    right: 10px;
-    top:10px;
-    border: 1px solid black;
-    position: absolute;
-  }  
-</style>
-</head>
-<body>
-<canvas id="canvas"></canvas>
-<!-- <canvas id="overlayCanvas"></canvas> -->
-<canvas id="copy_canvas"></canvas>
-<!-- <script src="../static/perspective.js"></script> -->
-<script>
-// 定义一些全局变量
-let canvas, ctx, copy_canvas, copy_ctx, srcImg, dstImg, srcPoints, dstPoints, selectedPoint = -1;
-let ipm=[[1,0,0],[0,1,0],[0,0,1]];
-let court_img='court.png';
-let real_court_img='R4.png';
-function dot(matrixA, matrixB) {
-    if (matrixA[0].length !== matrixB.length) {
-        throw "矩阵尺寸不兼容";
-    }
+    <head>
+        <meta charset="UTF-8" />
+        <title>Perspective Transform with HTML5 Canvas</title>
+        <style>
 
-    var result = [];
-    for (var i = 0; i < matrixA.length; i++) {
-        result[i] = [];
-        for (var j = 0; j < matrixB[0].length; j++) {
-            var sum = 0;
-            for (var k = 0; k < matrixA[0].length; k++) {
-                sum += matrixA[i][k] * matrixB[k][j];
+            body {
+                background-color: black;
+                overflow: hidden;
+                margin: 0;
             }
-            result[i][j] = sum;
-        }
-    }
-    return result;
-}
 
+            #overlayCanvas {
+                opacity: 0;
+                /* 设置覆盖层的透明度 */
+                pointer-events: none;
+                /* 防止覆盖层拦截鼠标事件 */
+                left: 10px;
+                top: 10px;
+                /* border: 1px solid black; */
+                position: absolute;
+            }
 
-// 初始化Canvas和图像
-function initCanvas() {
-  canvas = document.getElementById('canvas');
-  ctx = canvas.getContext('2d');
-  copy_canvas=document.getElementById('copy_canvas');
-  copy_ctx=copy_canvas.getContext('2d');
-  srcImg = new Image();
-  srcImg.onload = () => {
-    // const rect = canvas.getBoundingClientRect();
-    // canvas.width = rect.width;
-    // canvas.height = rect.height;
-    // if(srcImg.height>srcImg.width){
+            #copy_canvas {
+                opacity: 0.5;
+                pointer-events: none;
+                /* 防止覆盖层拦截鼠标事件 */
+                right: 10px;
+                top: 10px;
+                /* border: 1px solid black; */
+                position: absolute;
+            }
+        </style>
+    </head>
 
-    // }
-    canvas.width = srcImg.width;
-    canvas.height = srcImg.height;
-    ctx.drawImage(srcImg,0,0);
-    copy_canvas.width=srcImg.width*0.5;
-    copy_canvas.height=srcImg.height*0.5;
-    copy_ctx.drawImage(srcImg,0,0,copy_canvas.width,copy_canvas.height);
-    resetPoints();
-    // drawScene();
-  };
-  srcImg.src = 'static/'+court_img; // 替换为你的图像路径
+    <body>
+        <canvas id="canvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+        <canvas id="copy_canvas"></canvas>
+        <script>
+            // 定义一些全局变量
+            let canvas,
+                ctx,
+                copy_canvas,
+                copy_ctx,
+                srcImg,
+                dstImg,
+                srcPoints,
+                dstPoints,
+                selectedPoint = -1;
+            let canvasWidth, canvasHeight;
+            var court_x;
+            var court_y;
+            let ipm = [
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+            ];
+            let court_img = "shortcourt.png";
+            let real_court_img = "R6.png";
+            function dot(matrixA, matrixB) {
+                if (matrixA[0].length !== matrixB.length) {
+                    throw "矩阵尺寸不兼容";
+                }
 
-  // let overImg=new Image();
-  // overImg.onload=()=>{
-  //   over_canvas=document.getElementById('overlayCanvas');
-  //   over_ctx=over_canvas.getContext('2d');
-  //   over_canvas.width=overImg.width*0.65;
-  //   over_canvas.height=overImg.height*0.65;
-  //   over_ctx.drawImage(overImg,0,0,over_canvas.width,over_canvas.height);
-  // }
-  // overImg.src='static/'+real_court_img;
-}
+                var result = [];
+                for (var i = 0; i < matrixA.length; i++) {
+                    result[i] = [];
+                    for (var j = 0; j < matrixB[0].length; j++) {
+                        var sum = 0;
+                        for (var k = 0; k < matrixA[0].length; k++) {
+                            sum += matrixA[i][k] * matrixB[k][j];
+                        }
+                        result[i][j] = sum;
+                    }
+                }
+                return result;
+            }
 
-// 重置映射点到默认位置
-function resetPoints() {
-  srcPoints = [
-    // { x: 0, y: 0 },
-    // { x: canvas.width, y: 0 },
-    // { x: canvas.width, y: canvas.height },
-    // { x: 0, y: canvas.height }
-  ];
-  dstPoints = [
-    // { x: 0, y: 0 },
-    // { x: canvas.width , y: 0 },
-    // { x: canvas.width , y: canvas.height  },
-    // { x: 0, y: canvas.height  }
-  ];
-}
+            // 初始化Canvas和图像
+            function initCanvas() {
+                canvas = document.getElementById("canvas");
+                ctx = canvas.getContext("2d");
+                copy_canvas = document.getElementById("copy_canvas");
+                copy_ctx = copy_canvas.getContext("2d");
+                // 创建一个新的 Canvas 元素
+                var newCanvas = document.createElement("canvas");
+                var newCtx = newCanvas.getContext("2d");
 
-// 绘制场景
-function drawScene() {
-//   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  applyPerspectiveTransform();
-  drawPoints();
-}
+                // 设置新的 Canvas 的长宽为满屏幕大小
+                newCanvas.width = window.innerWidth;
+                newCanvas.height = window.innerHeight;
 
-// 绘制映射点
-function drawPoints() {
-  for (let i = 0; i < dstPoints.length; i++) {
-    drawPoint(dstPoints[i], selectedPoint === i ? 'red' : 'yellow');
-  }
-}
+                srcImg = new Image();
+                srcImg.onload = () => {
+                    copy_canvas.width = srcImg.width * 0.5;
+                    copy_canvas.height = srcImg.height * 0.5;
+                    copy_ctx.drawImage(
+                        srcImg,
+                        0,
+                        0,
+                        copy_canvas.width,
+                        copy_canvas.height
+                    );
 
-// 绘制单个点
-function drawPoint(point, color, context=ctx,radus=20,alpha=0.3) {
-    context.globalAlpha = alpha;
-    context.beginPath();
-    context.arc(point.x, point.y, radus, 0, 2 * Math.PI);
-    context.fillStyle = color;
-    context.fill();
-    context.closePath();
-    context.globalAlpha = 1;
-}
+                    const maxWidth = window.innerWidth;
+                    const maxHeight = window.innerHeight;
+                    const imageWidth = srcImg.width;
+                    const imageHeight = srcImg.height;
+                    if (imageWidth / imageHeight > maxWidth / maxHeight) {
+                        canvasWidth = maxWidth;
+                        canvasHeight = imageHeight * (maxWidth / imageWidth);
+                    } else {
+                        canvasWidth = imageWidth * (maxHeight / imageHeight);
+                        canvasHeight = maxHeight;
+                    }
+                    // 设置 Canvas 的宽度和高度
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+                    console.log(canvasWidth, canvasHeight);
 
+                    ctx.drawImage(srcImg, 0, 0, canvasWidth, canvasHeight);
 
-function drawPoint_nXY(point, color, dstContext=copy_ctx,dstCanvas=copy_canvas,radus=20,alpha=0.3) {
-    // dstContext.globalAlpha = alpha;
-    dstContext.beginPath();
-    dstContext.arc(point.x*dstCanvas.width, point.y*dstCanvas.height, radus, 0, 2 * Math.PI);
-    dstContext.fillStyle = color;
-    dstContext.fill();
-    dstContext.closePath();
-    // dstContext.globalAlpha = 1;
-}
+                    // 计算绘制位置，使现有的 Canvas 绘制在新的 Canvas 中间
+                    court_x = (newCanvas.width - canvas.width) / 2;
+                    court_y = (newCanvas.height - canvas.height) / 2;
 
-// 处理鼠标点击事件
-function handleMouseDown(event) {
-  const rect = canvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  if(srcPoints.length<4){
-    let point={x:x,y:y};
-    srcPoints.push(point);
-    dstPoints.push(point);
-    drawPoint(point,'yellow',context=ctx,radus=20,alpha=0.3);
-    return;
-  }
-  for (let i = 0; i < 4; i++) {
-    if (Math.sqrt(Math.pow(x - dstPoints[i].x, 2) + Math.pow(y - dstPoints[i].y, 2)) <= 20) {
-      selectedPoint = i;
-      return;
-    }
-    else{
-        drawPoint({x:x,y:y},'blue',ctx,5);
-        let input_point=[[x],[y],[1]];
-        let output_point;
-        if(ipm){
-            output_point=dot(ipm,input_point);
-            output_point[0]/=output_point[2];
-            output_point[1]/=output_point[2];
-            drawPoint_nXY({x:output_point[0]/canvas.width,y:output_point[1]/canvas.height},'blue',copy_ctx,copy_canvas,5);
-            console.log(output_point);
-        }
-    }
-  }
-  selectedPoint = -1;
-}
+                    // 在新的 Canvas 上绘制现有的 Canvas
+                    newCtx.drawImage(canvas, court_x, court_y);
+                    canvas.width = newCanvas.width;
+                    canvas.height = newCanvas.height;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(newCanvas, 0, 0);
+                    var dataUrl = canvas.toDataURL("image/jpeg");
+                    // 发送数据到后端保存
+                    fetch("/save_image", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ image_data: dataUrl }),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            console.log("Image saved successfully:", data);
+                        })
+                        .catch((error) => {
+                            console.error("Error saving image:", error);
+                        });
+                    resetPoints();
+                };
+                srcImg.src = "static/" + court_img; // 替换为你的图像路径
 
-// 处理鼠标移动事件
-function handleMouseMove(event) {
-  if (selectedPoint >= 0) {
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+                let overImg = new Image();
+                overImg.onload = () => {
+                    over_canvas = document.getElementById("overlayCanvas");
+                    over_ctx = over_canvas.getContext("2d");
+                    over_canvas.width = overImg.width;
+                    over_canvas.height = overImg.height;
+                    over_ctx.drawImage(
+                        overImg,
+                        0,
+                        0,
+                        over_canvas.width,
+                        over_canvas.height
+                    );
+                };
+                overImg.src = "static/" + real_court_img;
+            }
 
-    dstPoints[selectedPoint] = { x, y };
-    // console.log(x,y);
-    drawScene();
-  }
-}
+            // 重置映射点到默认位置
+            function resetPoints() {
+                srcPoints = [
+                    // { x: 0, y: 0 },
+                    // { x: canvas.width, y: 0 },
+                    // { x: canvas.width, y: canvas.height },
+                    // { x: 0, y: canvas.height }
+                ];
+                dstPoints = [
+                    // { x: 0, y: 0 },
+                    // { x: canvas.width , y: 0 },
+                    // { x: canvas.width , y: canvas.height    },
+                    // { x: 0, y: canvas.height    }
+                ];
+            }
 
-// 处理鼠标释放事件
-function handleMouseUp(event) {
-  if (selectedPoint >= 0) {
-    applyPerspectiveTransform();
-    selectedPoint = -1;
-  }
-}
+            // 绘制场景
+            function drawScene() {
+                applyPerspectiveTransform();
+                drawPoints();
+            }
 
-// // 应用透视变换
-function applyPerspectiveTransform() {
-  const rect = canvas.getBoundingClientRect();
-    const data = {
-      src_points: srcPoints,
-      dst_points: dstPoints,
-      court_img:court_img,
-      court_img_width:rect.width,
-      court_img_height:rect.height
-    };
-    fetch('/calculate_perspective_matrix', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        ipm=data.perspective_matrix;
-      // 假设 response 是从后端收到的 JSON 响应对象
-        var outputImageBase64 = data.output_image_base64;
+            // 绘制映射点
+            function drawPoints() {
+                for (let i = 0; i < dstPoints.length; i++) {
+                    drawPoint(dstPoints[i], selectedPoint === i ? "red" : "yellow");
+                }
+            }
 
-        // 创建一个新的图像元素
-        var img = new Image();
+            // 绘制单个点
+            function drawPoint(point, color, context = ctx, radus = 20, alpha = 0.3) {
+                context.globalAlpha = alpha;
+                context.beginPath();
+                context.arc(point.x, point.y, radus, 0, 2 * Math.PI);
+                context.fillStyle = color;
+                context.fill();
+                context.closePath();
+                context.globalAlpha = 1;
+            }
 
-        // 设置图像的 base64 编码字符串作为源
-        img.src = 'data:image/jpeg;base64,' + outputImageBase64;
+            function drawPoint_nXY(point,color,dstContext = copy_ctx,dstCanvas = copy_canvas,radus = 20,alpha = 0.3) {
+                // dstContext.globalAlpha = alpha;
+                dstContext.beginPath();
+                dstContext.arc(point.x * dstCanvas.width,point.y * dstCanvas.height,radus,0,2 * Math.PI);
+                dstContext.fillStyle = color;
+                dstContext.fill();
+                dstContext.closePath();
+                // dstContext.globalAlpha = 1;
+            }
 
-        // 将图像添加到页面中
-        // document.body.appendChild(img);
-        img.onload = function() {
-            var canvas = document.getElementById('canvas');
-            var ctx = canvas.getContext('2d');
-            // canvas.width = img.width;
-            // canvas.height = img.height;
-            ctx.drawImage(img, 0, 0,img.width,img.height);
-            drawPoints();
-        };
-      // 这里可以根据需要处理从服务器端接收到的透视变换矩阵
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });    
-    drawPoints();
-}
+            // 处理鼠标点击事件
+            function handleMouseDown(event) {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                console.log(x, y);
+                if (srcPoints.length < 4) {
+                    let point = { x: x, y: y };
+                    srcPoints.push(point);
+                    dstPoints.push(point);
+                    drawPoint(
+                        point,
+                        "yellow",
+                        (context = ctx),
+                        (radus = 20),
+                        (alpha = 0.3)
+                    );
+                    return;
+                }
+                for (let i = 0; i < 4; i++) {
+                    if (
+                        Math.sqrt(
+                            Math.pow(x - dstPoints[i].x, 2) + Math.pow(y - dstPoints[i].y, 2)
+                        ) <= 20
+                    ) {
+                        selectedPoint = i;
+                        return;
+                    } else {
+                        drawPoint({ x: x, y: y }, "blue", ctx, 5);
+                        let input_point = [[x], [y], [1]];
+                        let output_point;
+                        if (ipm) {
+                            output_point = dot(ipm, input_point);
+                            output_point[0] /= output_point[2];
+                            output_point[1] /= output_point[2];
+                            drawPoint_nXY(
+                                {
+                                    x: (output_point[0] - court_x) / (canvas.width - 2 * court_x),
+                                    y:
+                                        (output_point[1] - court_y) / (canvas.height - 2 * court_y),
+                                },
+                                "blue",
+                                copy_ctx,
+                                copy_canvas,
+                                5
+                            );
+                            console.log(output_point);
+                        }
+                    }
+                }
+                selectedPoint = -1;
+            }
 
+            // 处理鼠标移动事件
+            function handleMouseMove(event) {
+                if (selectedPoint >= 0) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+                    dstPoints[selectedPoint] = { x, y };
+                    drawScene();
+                }
+            }
 
-// 设置事件监听器
-function setupEventListeners() {
-  canvas.addEventListener('mousedown', handleMouseDown);
-  canvas.addEventListener('mousemove', handleMouseMove);
-  canvas.addEventListener('mouseup', handleMouseUp);
-}
+            // 处理鼠标释放事件
+            function handleMouseUp(event) {
+                if (selectedPoint >= 0) {
+                    drawScene();
+                    selectedPoint = -1;
+                }
+            }
 
-// 当DOM加载完成后初始化Canvas并设置事件监听器
-document.addEventListener('DOMContentLoaded', function() {
-  initCanvas();
-  setupEventListeners();
-});
-</script>
-</body>
+            // // 应用透视变换
+            function applyPerspectiveTransform() {
+                const rect = canvas.getBoundingClientRect();
+                const data = {
+                    src_points: srcPoints,
+                    dst_points: dstPoints,
+                };
+                fetch("/calculate_perspective_matrix", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        ipm = data.perspective_matrix;
+                        // 假设 response 是从后端收到的 JSON 响应对象
+                        var outputImageBase64 = data.output_image_base64;
+
+                        var img = new Image();
+                        img.src = "data:image/jpeg;base64," + outputImageBase64;
+                        img.onload = function () {
+                            var canvas = document.getElementById("canvas");
+                            var ctx = canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            drawPoints();
+                        };
+                        // 这里可以根据需要处理从服务器端接收到的透视变换矩阵
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                    });
+                drawPoints();
+            }
+
+            // 设置事件监听器
+            function setupEventListeners() {
+                canvas.addEventListener("mousedown", handleMouseDown);
+                canvas.addEventListener("mousemove", handleMouseMove);
+                canvas.addEventListener("mouseup", handleMouseUp);
+            }
+
+            // 当DOM加载完成后初始化Canvas并设置事件监听器
+            document.addEventListener("DOMContentLoaded", function () {
+                initCanvas();
+                setupEventListeners();
+            });
+        </script>
+    </body>
 </html>
