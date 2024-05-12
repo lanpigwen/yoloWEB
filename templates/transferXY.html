@@ -21,7 +21,7 @@
 <canvas id="canvas"></canvas>
 <canvas id="overlayCanvas"></canvas>
 <canvas id="copy_canvas"></canvas>
-<script src="../static/perspective.js"></script>
+<!-- <script src="../static/perspective.js"></script> -->
 <script>
 // 定义一些全局变量
 let canvas, ctx, transformedCanvas, transformedCtx, srcImg, dstImg, srcPoints, dstPoints, selectedPoint = -1;
@@ -50,44 +50,18 @@ function dot(matrixA, matrixB) {
 function initCanvas() {
   canvas = document.getElementById('canvas');
   ctx = canvas.getContext('2d');
+  copy_canvas=document.getElementById('copy_canvas');
+  copy_ctx=copy_canvas.getContext('2d');
   srcImg = new Image();
   srcImg.onload = () => {
     canvas.width = srcImg.width;
     canvas.height = srcImg.height;
-    console.log(srcImg.width,srcImg.height)
-    var p = new Perspective(ctx, srcImg);
-    p.draw([
-            [0, 0],
-            [srcImg.width , 0],
-            [srcImg.width , srcImg.height ],
-            [0, srcImg.height]
-    ]);
-    copy_canvas=document.getElementById('copy_canvas');
-    copy_ctx=copy_canvas.getContext('2d');
-    copy_canvas.width=srcImg.width*2;
-    copy_canvas.height=srcImg.height*2;
+    ctx.drawImage(srcImg,0,0,canvas.width,canvas.height);
+    copy_canvas.width=srcImg.width;
+    copy_canvas.height=srcImg.height;
     copy_ctx.drawImage(srcImg,0,0);
-    // var cp = new Perspective(copy_ctx, srcImg);
-    // cp.draw([
-    //         [0, 0],
-    //         [srcImg.width , 0],
-    //         [srcImg.width , srcImg.height ],
-    //         [0, srcImg.height]
-    // ]);
-
-    // over_canvas=document.getElementById('overlayCanvas');
-    // over_ctx=over_canvas.getContext('2d');
-    // over_canvas.width=srcImg.width;
-    // over_canvas.height=srcImg.height;
-    // var op = new Perspective(over_ctx, srcImg);
-    // op.draw([
-    //         [0, 0],
-    //         [srcImg.width , 0],
-    //         [srcImg.width , srcImg.height ],
-    //         [0, srcImg.height]
-    // ]);
     resetPoints();
-    drawScene();
+    // drawScene();
   };
   srcImg.src = 'static/court.png'; // 替换为你的图像路径
 
@@ -98,13 +72,6 @@ function initCanvas() {
     over_canvas.width=overImg.width*0.65;
     over_canvas.height=overImg.height*0.65;
     over_ctx.drawImage(overImg,0,0,over_canvas.width,over_canvas.height);
-    // var op = new Perspective(over_ctx, overImg);
-    // op.draw([
-    //         [0, 0],
-    //         [overImg.width , 0],
-    //         [overImg.width , overImg.height ],
-    //         [0, overImg.height]
-    // ]);
   }
   overImg.src='static/R4.png';
 }
@@ -112,16 +79,16 @@ function initCanvas() {
 // 重置映射点到默认位置
 function resetPoints() {
   srcPoints = [
-    { x: 0, y: 0 },
-    { x: canvas.width, y: 0 },
-    { x: canvas.width, y: canvas.height },
-    { x: 0, y: canvas.height }
+    // { x: 0, y: 0 },
+    // { x: canvas.width, y: 0 },
+    // { x: canvas.width, y: canvas.height },
+    // { x: 0, y: canvas.height }
   ];
   dstPoints = [
-    { x: 0, y: 0 },
-    { x: canvas.width , y: 0 },
-    { x: canvas.width , y: canvas.height  },
-    { x: 0, y: canvas.height  }
+    // { x: 0, y: 0 },
+    // { x: canvas.width , y: 0 },
+    // { x: canvas.width , y: canvas.height  },
+    // { x: 0, y: canvas.height  }
   ];
 }
 
@@ -134,18 +101,20 @@ function drawScene() {
 
 // 绘制映射点
 function drawPoints() {
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < dstPoints.length; i++) {
     drawPoint(dstPoints[i], selectedPoint === i ? 'red' : 'yellow');
   }
 }
 
 // 绘制单个点
-function drawPoint(point, color, context=ctx,radus=20) {
+function drawPoint(point, color, context=ctx,radus=20,alpha=0.3) {
+    context.globalAlpha = alpha;
     context.beginPath();
     context.arc(point.x, point.y, radus, 0, 2 * Math.PI);
     context.fillStyle = color;
     context.fill();
     context.closePath();
+    context.globalAlpha = 1;
 }
 
 // 处理鼠标点击事件
@@ -153,7 +122,13 @@ function handleMouseDown(event) {
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
-
+  if(srcPoints.length<4){
+    let point={x:x,y:y};
+    srcPoints.push(point);
+    dstPoints.push(point);
+    drawPoint(point,'yellow',context=ctx,radus=20,alpha=0.3);
+    return;
+  }
   for (let i = 0; i < 4; i++) {
     if (Math.sqrt(Math.pow(x - dstPoints[i].x, 2) + Math.pow(y - dstPoints[i].y, 2)) <= 20) {
       selectedPoint = i;
@@ -191,78 +166,13 @@ function handleMouseMove(event) {
 // 处理鼠标释放事件
 function handleMouseUp(event) {
   if (selectedPoint >= 0) {
-    // 应用透视变换
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
     applyPerspectiveTransform();
-        // 发送 src_points 和 dst_points 到服务器
-        const data = {
-      src_points: srcPoints,
-      dst_points: dstPoints
-    };
-
-    // fetch('/calculate_perspective_matrix', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify(data)
-    // })
-    // .then(response => response.json())
-    // .then(data => {
-    //     ipm=data.perspective_matrix;
-    //   console.log('Received inverse perspective matrix:', data.perspective_matrix);
-    //   // 假设 response 是从后端收到的 JSON 响应对象
-    //     var outputImageBase64 = data.output_image_base64;
-
-    //     // 创建一个新的图像元素
-    //     var img = new Image();
-
-    //     // 设置图像的 base64 编码字符串作为源
-    //     img.src = 'data:image/jpeg;base64,' + outputImageBase64;
-
-    //     // 将图像添加到页面中
-    //     // document.body.appendChild(img);
-    //     img.onload = function() {
-    //         var canvas = document.getElementById('canvas');
-    //         var ctx = canvas.getContext('2d');
-    //         canvas.width = img.width;
-    //         canvas.height = img.height;
-    //         ctx.drawImage(img, 0, 0);
-    //         drawPoints();
-    //     };
-    //   // 这里可以根据需要处理从服务器端接收到的透视变换矩阵
-    // })
-    // .catch(error => {
-    //   console.error('Error:', error);
-    // });
     selectedPoint = -1;
   }
 }
 
-function caculateLargeEdge(dstPoints) {
-    // 定义最大边的长度为初始值
-    var maxEdgeLength = 0;
-    var stp=0;
-    var edp=0;
-    // 计算四条边的长度并找出最大的一条边
-    for (var i = 0; i < dstPoints.length; i++) {
-        var p1 = dstPoints[i];
-        var p2 = dstPoints[(i + 1) % 4]; // 使用模运算来获取下一个点的索引，确保首尾相连
-        var edgeLength = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-        if (edgeLength > maxEdgeLength) {
-            maxEdgeLength = edgeLength;
-            stp=i;
-            edp=(i + 1) % 4;
-        }
-    }
-
-    // 返回最大边的长度
-    return {len:maxEdgeLength,stp:stp,edp:edp};
-}
-
 // // 应用透视变换
 function applyPerspectiveTransform() {
-    // console.log(caculateLargeEdge(dstPoints));
     const data = {
       src_points: srcPoints,
       dst_points: dstPoints
@@ -277,7 +187,6 @@ function applyPerspectiveTransform() {
     .then(response => response.json())
     .then(data => {
         ipm=data.perspective_matrix;
-    //   console.log('Received inverse perspective matrix:', data.perspective_matrix);
       // 假设 response 是从后端收到的 JSON 响应对象
         var outputImageBase64 = data.output_image_base64;
 
@@ -301,16 +210,7 @@ function applyPerspectiveTransform() {
     })
     .catch(error => {
       console.error('Error:', error);
-    });
-    // var p = new Perspective(ctx, srcImg);
-    //             p.draw([
-    //             [dstPoints[0].x,dstPoints[0].y],
-    //             [dstPoints[1].x,dstPoints[1].y],
-    //             [dstPoints[2].x,dstPoints[2].y],
-    //             [dstPoints[3].x,dstPoints[3].y],
-    //             ]);
-
-    
+    });    
     drawPoints();
 }
 
