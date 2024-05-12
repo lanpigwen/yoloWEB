@@ -1,56 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Screen Recording Example</title>
+<meta charset="UTF-8">
+<title>Perspective Transform with OpenCV.js</title>
+<script src="https://cdn.jsdelivr.net/npm/opencv4/dist/opencv.js"></script>
 </head>
 <body>
-  <button id="startRecording">Start Recording</button>
-  <button id="stopRecording">Stop Recording</button>
-  <br>
-  <video id="recordedVideo" controls></video>
+<input type="file" id="fileInput">
+<canvas id="canvas" width="600" height="400"></canvas>
+<canvas id="transformedCanvas" width="600" height="400"></canvas>
+<script>
+// 设置文件上传监听器
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', handleFileUpload);
 
-  <script>
-    const startRecordingBtn = document.getElementById('startRecording');
-    const stopRecordingBtn = document.getElementById('stopRecording');
-    const recordedVideo = document.getElementById('recordedVideo');
+// 处理文件上传
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-    let mediaRecorder;
-    let recordedChunks = [];
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = function() {
+      // 渲染图像
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
 
-    startRecordingBtn.addEventListener('click', async () => {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            mediaSource: 'screen',
-          },
-        });
-        mediaRecorder = new MediaRecorder(stream);
+      // 等待 OpenCV.js 初始化完成
+      cv.onRuntimeInitialized = () => {
+        console.log('OpenCV.js initialized');
+        // 计算透视变换矩阵
+        const srcPoints = new cv.Mat([
+          [0, 0],
+          [img.width, 0],
+          [img.width, img.height],
+          [0, img.height]
+        ], cv.CV_32FC2);
+        const dstPoints = new cv.Mat([
+          [0, 0],
+          [img.width, 0],
+          [img.width, img.height],
+          [0, img.height]
+        ], cv.CV_32FC2);
+        const perspectiveMatrix = cv.getPerspectiveTransform(srcPoints, dstPoints);
 
-        mediaRecorder.ondataavailable = function(event) {
-          recordedChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = function() {
-          const blob = new Blob(recordedChunks, {
-            type: 'video/webm',
-          });
-          recordedChunks = [];
-          recordedVideo.src = URL.createObjectURL(blob);
-        };
-
-        mediaRecorder.start();
-      } catch (err) {
-        console.error('Error accessing screen capture:', err);
-      }
-    });
-
-    stopRecordingBtn.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-    });
-  </script>
+        // 应用透视变换
+        const transformedCanvas = document.getElementById('transformedCanvas');
+        const transformedCtx = transformedCanvas.getContext('2d');
+        const transformedImg = new cv.Mat();
+        cv.warpPerspective(cv.imread(canvas), transformedImg, perspectiveMatrix, img.size());
+        cv.imshow(transformedCanvas, transformedImg);
+        transformedImg.delete();
+        srcPoints.delete();
+        dstPoints.delete();
+      };
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+</script>
 </body>
 </html>

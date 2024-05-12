@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perspective Transformation</title>
+<style>
+    #canvasContainer {
+        position: relative;
+        margin: 20px auto;
+    }
+    canvas {
+        border: 1px solid black;
+    }
+</style>
+</head>
+<body>
+<div>
+    <input type="file" accept="image/*" id="fileInput">
+</div>
+<div id="canvasContainer">
+    <canvas id="sourceCanvas" width="400" height="300"></canvas>
+</div>
+<script>
+    // 获取canvas元素和上下文
+    const sourceCanvas = document.getElementById('sourceCanvas');
+    const ctx = sourceCanvas.getContext('2d');
+
+    // 加载图像
+    function loadImage(file) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+                ctx.drawImage(img, 0, 0, sourceCanvas.width, sourceCanvas.height);
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // 监听文件选择变化
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            loadImage(file);
+        }
+    });
+
+    // 定义变量
+    let srcPoint = [{ x: 0, y: 0 }, { x: sourceCanvas.width, y: 0 }, { x: sourceCanvas.width, y: sourceCanvas.height }, { x: 0, y: sourceCanvas.height }];
+    let dstPoint = [{ x: 50, y: 50 }, { x: sourceCanvas.width + 50, y: 50 }, { x: sourceCanvas.width + 50, y: sourceCanvas.height + 50 }, { x: 50, y: sourceCanvas.height + 50 }];
+    let radius = 10;
+    let pickPoint = -1;
+    let beforePlace = { x: 0, y: 0 };
+
+    // 绘制图像和映射点
+    function draw() {
+        ctx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+        ctx.drawImage(srcImg, 0, 0, sourceCanvas.width, sourceCanvas.height);
+        ctx.strokeStyle = 'yellow';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(dstPoint[0].x, dstPoint[0].y);
+        ctx.lineTo(dstPoint[1].x, dstPoint[1].y);
+        ctx.lineTo(dstPoint[2].x, dstPoint[2].y);
+        ctx.lineTo(dstPoint[3].x, dstPoint[3].y);
+        ctx.lineTo(dstPoint[0].x, dstPoint[0].y);
+        ctx.stroke();
+        ctx.fillStyle = 'blue';
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.arc(dstPoint[i].x, dstPoint[i].y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 鼠标事件处理
+    sourceCanvas.addEventListener('mousedown', function(event) {
+        const rect = sourceCanvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        for (let i = 0; i < 4; i++) {
+            if (Math.abs(mouseX - dstPoint[i].x) <= radius && Math.abs(mouseY - dstPoint[i].y) <= radius) {
+                pickPoint = i;
+                beforePlace = { x: dstPoint[pickPoint].x, y: dstPoint[pickPoint].y };
+                break;
+            }
+        }
+    });
+
+    sourceCanvas.addEventListener('mousemove', function(event) {
+        if (pickPoint >= 0) {
+            const rect = sourceCanvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            dstPoint[pickPoint].x = mouseX;
+            dstPoint[pickPoint].y = mouseY;
+            draw();
+        }
+    });
+
+    sourceCanvas.addEventListener('mouseup', function(event) {
+        pickPoint = -1;
+    });
+
+</script>
+</body>
+</html>

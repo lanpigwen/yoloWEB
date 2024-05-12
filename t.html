@@ -2,29 +2,179 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Two Lines End-aligned Text</title>
+<title>Perspective Transform with HTML5 Canvas</title>
 <style>
-  #container {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    text-align: right;
-    height: 50px; /* 设置容器高度 */
+  canvas {
+    border: 1px solid black;
   }
 </style>
 </head>
 <body>
-<div id="container">
-  <span id="taskSpan"></span>
-</div>
-
+<canvas id="canvas" width="600" height="400"></canvas>
+<canvas id="transformedCanvas" width="600" height="400"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
 <script>
-  var taskSpan = document.getElementById('taskSpan');
-  var task = ["Task1", "Task2", "Task3"]; // 假设这是你的任务数组
-  var taskID = 0; // 假设要显示的任务ID
+// 定义一些全局变量
+let canvas, ctx, transformedCanvas, transformedCtx, srcImg, dstImg, srcPoints, dstPoints, selectedPoint = -1;
 
-  taskSpan.innerHTML = 'LOW<br>' + task[taskID];
+// 初始化Canvas和图像
+function initCanvas() {
+  canvas = document.getElementById('canvas');
+  ctx = canvas.getContext('2d');
+  transformedCanvas = document.getElementById('transformedCanvas');
+  transformedCtx = transformedCanvas.getContext('2d');
+
+  srcImg = new Image();
+  srcImg.onload = () => {
+    // 假设图像已经加载，可以进行绘制
+    const aspectRatio = srcImg.width / srcImg.height;
+    canvas.width = 600; // 设置canvas的宽度
+    canvas.height = 600 / aspectRatio; // 根据图像宽高比计算canvas的高度
+    transformedCanvas.width = canvas.width;
+    transformedCanvas.height = canvas.height;
+    resetPoints();
+    drawScene();
+  };
+  srcImg.src = 'bus.jpg'; // 替换为你的图像路径
+}
+
+// 重置映射点到默认位置
+function resetPoints() {
+  srcPoints = [
+    { x: 0, y: 0 },
+    { x: canvas.width, y: 0 },
+    { x: canvas.width, y: canvas.height },
+    { x: 0, y: canvas.height }
+  ];
+  dstPoints = [
+    { x: 0, y: 0 },
+    { x: canvas.width , y: 0 },
+    { x: canvas.width , y: canvas.height  },
+    { x: 0, y: canvas.height  }
+  ];
+}
+
+// 绘制场景
+function drawScene() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(srcImg, 0, 0, canvas.width, canvas.height);
+  drawPoints();
+}
+
+// 绘制映射点
+function drawPoints() {
+  for (let i = 0; i < 4; i++) {
+    drawPoint(dstPoints[i], selectedPoint === i ? 'red' : 'yellow');
+  }
+}
+
+// 绘制单个点
+function drawPoint(point, color) {
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, 10, 0, 2 * Math.PI);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.closePath();
+}
+
+// 处理鼠标点击事件
+function handleMouseDown(event) {
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  for (let i = 0; i < 4; i++) {
+    if (Math.sqrt(Math.pow(x - dstPoints[i].x, 2) + Math.pow(y - dstPoints[i].y, 2)) <= 10) {
+      selectedPoint = i;
+      return;
+    }
+  }
+  selectedPoint = -1;
+}
+
+// 处理鼠标移动事件
+function handleMouseMove(event) {
+  if (selectedPoint >= 0) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    dstPoints[selectedPoint] = { x, y };
+    drawScene();
+  }
+}
+
+// 处理鼠标释放事件
+function handleMouseUp(event) {
+  if (selectedPoint >= 0) {
+    // 应用透视变换
+    transformedCtx.clearRect(0, 0, transformedCanvas.width, transformedCanvas.height);
+
+    applyPerspectiveTransform();
+    selectedPoint = -1;
+  }
+}
+
+// 应用透视变换
+function applyPerspectiveTransform() {
+  // 计算透视变换矩阵
+  const perspectiveMatrix = calculatePerspectiveMatrix(srcPoints, dstPoints);
+  console.log(perspectiveMatrix);
+  // 应用变换
+  transformedCtx.setTransform(
+    perspectiveMatrix[0], perspectiveMatrix[1], perspectiveMatrix[3], perspectiveMatrix[4], perspectiveMatrix[6], perspectiveMatrix[7]
+  );
+
+  // 重新绘制图像
+  transformedCtx.clearRect(0, 0, transformedCanvas.width, transformedCanvas.height);
+  transformedCtx.drawImage(srcImg, 0, 0, transformedCanvas.width, transformedCanvas.height);
+}
+
+// 计算透视变换矩阵
+function calculatePerspectiveMatrix(srcPoints, dstPoints) {
+  // 参考：https://stackoverflow.com/a/26127012
+  const src = [], dst = [];
+  for (let i = 0; i < 4; i++) {
+    src.push(srcPoints[i].x, srcPoints[i].y);
+    dst.push(dstPoints[i].x, dstPoints[i].y);
+  }
+
+  const A = [];
+  for (let i = 0; i < src.length; i += 2) {
+    const x = src[i], y = src[i + 1], u = dst[i], v = dst[i + 1];
+    A.push(
+      [-x, -y, -1, 0, 0, 0, x * u, y * u, u],
+      [0, 0, 0, -x, -y, -1, x * v, y * v, v]
+    );
+  }
+
+  const b = [];
+  for (let i = 0; i < dst.length; i += 2) {
+    b.push(dst[i], dst[i + 1]);
+  }
+
+  const x = numeric.solve(A, b);
+
+  return [
+    x[0], x[3], 0, x[6],
+    x[1], x[4], 0, x[7],
+    0,    0,    1, 0,
+    x[2], x[5], 0, 1
+  ];
+}
+
+// 设置事件监听器
+function setupEventListeners() {
+  canvas.addEventListener('mousedown', handleMouseDown);
+  canvas.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener('mouseup', handleMouseUp);
+}
+
+// 当DOM加载完成后初始化Canvas并设置事件监听器
+document.addEventListener('DOMContentLoaded', function() {
+  initCanvas();
+  setupEventListeners();
+});
 </script>
 </body>
 </html>
