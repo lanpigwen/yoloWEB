@@ -35,13 +35,13 @@
     </head>
 
     <body>
-        <canvas id="canvas"></canvas>
+        <canvas id="court_canvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
         <canvas id="copy_canvas"></canvas>
         <script>
             // 定义一些全局变量
-            let canvas,
-                ctx,
+            let court_canvas,
+                court_ctx,
                 copy_canvas,
                 copy_ctx,
                 srcImg,
@@ -80,8 +80,8 @@
 
             // 初始化Canvas和图像
             function initCanvas() {
-                canvas = document.getElementById("canvas");
-                ctx = canvas.getContext("2d");
+                court_canvas = document.getElementById("court_canvas");
+                court_ctx = court_canvas.getContext("2d");
                 copy_canvas = document.getElementById("copy_canvas");
                 copy_ctx = copy_canvas.getContext("2d");
                 // 创建一个新的 Canvas 元素
@@ -116,23 +116,23 @@
                         canvasHeight = maxHeight;
                     }
                     // 设置 Canvas 的宽度和高度
-                    canvas.width = canvasWidth;
-                    canvas.height = canvasHeight;
+                    court_canvas.width = canvasWidth;
+                    court_canvas.height = canvasHeight;
                     console.log(canvasWidth, canvasHeight);
 
-                    ctx.drawImage(srcImg, 0, 0, canvasWidth, canvasHeight);
+                    court_ctx.drawImage(srcImg, 0, 0, canvasWidth, canvasHeight);
 
                     // 计算绘制位置，使现有的 Canvas 绘制在新的 Canvas 中间
-                    court_x = (newCanvas.width - canvas.width) / 2;
-                    court_y = (newCanvas.height - canvas.height) / 2;
+                    court_x = (newCanvas.width - court_canvas.width) / 2;
+                    court_y = (newCanvas.height - court_canvas.height) / 2;
 
                     // 在新的 Canvas 上绘制现有的 Canvas
-                    newCtx.drawImage(canvas, court_x, court_y);
-                    canvas.width = newCanvas.width;
-                    canvas.height = newCanvas.height;
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(newCanvas, 0, 0);
-                    var dataUrl = canvas.toDataURL("image/jpeg");
+                    newCtx.drawImage(court_canvas, court_x, court_y);
+                    court_canvas.width = newCanvas.width;
+                    court_canvas.height = newCanvas.height;
+                    court_ctx.clearRect(0, 0, court_canvas.width, court_canvas.height);
+                    court_ctx.drawImage(newCanvas, 0, 0);
+                    var dataUrl = court_canvas.toDataURL("image/jpeg");
                     // 发送数据到后端保存
                     fetch("/save_image", {
                         method: "POST",
@@ -199,7 +199,7 @@
             }
 
             // 绘制单个点
-            function drawPoint(point, color, context = ctx, radus = 20, alpha = 0.3) {
+            function drawPoint(point, color, context = court_ctx, radus = 20, alpha = 0.3) {
                 context.globalAlpha = alpha;
                 context.beginPath();
                 context.arc(point.x, point.y, radus, 0, 2 * Math.PI);
@@ -221,7 +221,7 @@
 
             // 处理鼠标点击事件
             function handleMouseDown(event) {
-                const rect = canvas.getBoundingClientRect();
+                const rect = court_canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
                 console.log(x, y);
@@ -232,7 +232,7 @@
                     drawPoint(
                         point,
                         "yellow",
-                        (context = ctx),
+                        (context = court_ctx),
                         (radus = 20),
                         (alpha = 0.3)
                     );
@@ -247,7 +247,7 @@
                         selectedPoint = i;
                         return;
                     } else {
-                        drawPoint({ x: x, y: y }, "blue", ctx, 5);
+                        drawPoint({ x: x, y: y }, "blue", court_ctx, 5);
                         let input_point = [[x], [y], [1]];
                         let output_point;
                         if (ipm) {
@@ -256,9 +256,9 @@
                             output_point[1] /= output_point[2];
                             drawPoint_nXY(
                                 {
-                                    x: (output_point[0] - court_x) / (canvas.width - 2 * court_x),
+                                    x: (output_point[0] - court_x) / (court_canvas.width - 2 * court_x),
                                     y:
-                                        (output_point[1] - court_y) / (canvas.height - 2 * court_y),
+                                        (output_point[1] - court_y) / (court_canvas.height - 2 * court_y),
                                 },
                                 "blue",
                                 copy_ctx,
@@ -275,7 +275,7 @@
             // 处理鼠标移动事件
             function handleMouseMove(event) {
                 if (selectedPoint >= 0) {
-                    const rect = canvas.getBoundingClientRect();
+                    const rect = court_canvas.getBoundingClientRect();
                     const x = event.clientX - rect.left;
                     const y = event.clientY - rect.top;
                     dstPoints[selectedPoint] = { x, y };
@@ -293,7 +293,7 @@
 
             // // 应用透视变换
             function applyPerspectiveTransform() {
-                const rect = canvas.getBoundingClientRect();
+                const rect = court_canvas.getBoundingClientRect();
                 const data = {
                     src_points: srcPoints,
                     dst_points: dstPoints,
@@ -314,9 +314,9 @@
                         var img = new Image();
                         img.src = "data:image/jpeg;base64," + outputImageBase64;
                         img.onload = function () {
-                            var canvas = document.getElementById("canvas");
-                            var ctx = canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            // var court_canvas = document.getElementById("court_canvas");
+                            // var court_ctx = canvas.getContext("2d");
+                            court_ctx.drawImage(img, 0, 0, court_canvas.width, court_canvas.height);
                             drawPoints();
                         };
                         // 这里可以根据需要处理从服务器端接收到的透视变换矩阵
@@ -329,9 +329,9 @@
 
             // 设置事件监听器
             function setupEventListeners() {
-                canvas.addEventListener("mousedown", handleMouseDown);
-                canvas.addEventListener("mousemove", handleMouseMove);
-                canvas.addEventListener("mouseup", handleMouseUp);
+                court_canvas.addEventListener("mousedown", handleMouseDown);
+                court_canvas.addEventListener("mousemove", handleMouseMove);
+                court_canvas.addEventListener("mouseup", handleMouseUp);
             }
 
             // 当DOM加载完成后初始化Canvas并设置事件监听器
