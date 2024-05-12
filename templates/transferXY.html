@@ -6,7 +6,13 @@
 <style>
   canvas {
     border: 1px solid black;
+    
   }
+  /* #canvas{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  } */
   #overlayCanvas {
     opacity: 0.5; /* 设置覆盖层的透明度 */
     pointer-events: none; /* 防止覆盖层拦截鼠标事件 */
@@ -15,17 +21,27 @@
     border: 1px solid black;
     position: absolute;
   }
+  #copy_canvas {
+    opacity: 0.5; 
+    pointer-events: none; /* 防止覆盖层拦截鼠标事件 */
+    right: 10px;
+    top:10px;
+    border: 1px solid black;
+    position: absolute;
+  }  
 </style>
 </head>
 <body>
 <canvas id="canvas"></canvas>
-<canvas id="overlayCanvas"></canvas>
+<!-- <canvas id="overlayCanvas"></canvas> -->
 <canvas id="copy_canvas"></canvas>
 <!-- <script src="../static/perspective.js"></script> -->
 <script>
 // 定义一些全局变量
-let canvas, ctx, transformedCanvas, transformedCtx, srcImg, dstImg, srcPoints, dstPoints, selectedPoint = -1;
+let canvas, ctx, copy_canvas, copy_ctx, srcImg, dstImg, srcPoints, dstPoints, selectedPoint = -1;
 let ipm=[[1,0,0],[0,1,0],[0,0,1]];
+let court_img='court.png';
+let real_court_img='R4.png';
 function dot(matrixA, matrixB) {
     if (matrixA[0].length !== matrixB.length) {
         throw "矩阵尺寸不兼容";
@@ -54,26 +70,32 @@ function initCanvas() {
   copy_ctx=copy_canvas.getContext('2d');
   srcImg = new Image();
   srcImg.onload = () => {
+    // const rect = canvas.getBoundingClientRect();
+    // canvas.width = rect.width;
+    // canvas.height = rect.height;
+    // if(srcImg.height>srcImg.width){
+
+    // }
     canvas.width = srcImg.width;
     canvas.height = srcImg.height;
-    ctx.drawImage(srcImg,0,0,canvas.width,canvas.height);
-    copy_canvas.width=srcImg.width;
-    copy_canvas.height=srcImg.height;
-    copy_ctx.drawImage(srcImg,0,0);
+    ctx.drawImage(srcImg,0,0);
+    copy_canvas.width=srcImg.width*0.5;
+    copy_canvas.height=srcImg.height*0.5;
+    copy_ctx.drawImage(srcImg,0,0,copy_canvas.width,copy_canvas.height);
     resetPoints();
     // drawScene();
   };
-  srcImg.src = 'static/court.png'; // 替换为你的图像路径
+  srcImg.src = 'static/'+court_img; // 替换为你的图像路径
 
-  let overImg=new Image();
-  overImg.onload=()=>{
-    over_canvas=document.getElementById('overlayCanvas');
-    over_ctx=over_canvas.getContext('2d');
-    over_canvas.width=overImg.width*0.65;
-    over_canvas.height=overImg.height*0.65;
-    over_ctx.drawImage(overImg,0,0,over_canvas.width,over_canvas.height);
-  }
-  overImg.src='static/R4.png';
+  // let overImg=new Image();
+  // overImg.onload=()=>{
+  //   over_canvas=document.getElementById('overlayCanvas');
+  //   over_ctx=over_canvas.getContext('2d');
+  //   over_canvas.width=overImg.width*0.65;
+  //   over_canvas.height=overImg.height*0.65;
+  //   over_ctx.drawImage(overImg,0,0,over_canvas.width,over_canvas.height);
+  // }
+  // overImg.src='static/'+real_court_img;
 }
 
 // 重置映射点到默认位置
@@ -117,6 +139,17 @@ function drawPoint(point, color, context=ctx,radus=20,alpha=0.3) {
     context.globalAlpha = 1;
 }
 
+
+function drawPoint_nXY(point, color, dstContext=copy_ctx,dstCanvas=copy_canvas,radus=20,alpha=0.3) {
+    // dstContext.globalAlpha = alpha;
+    dstContext.beginPath();
+    dstContext.arc(point.x*dstCanvas.width, point.y*dstCanvas.height, radus, 0, 2 * Math.PI);
+    dstContext.fillStyle = color;
+    dstContext.fill();
+    dstContext.closePath();
+    // dstContext.globalAlpha = 1;
+}
+
 // 处理鼠标点击事件
 function handleMouseDown(event) {
   const rect = canvas.getBoundingClientRect();
@@ -142,7 +175,7 @@ function handleMouseDown(event) {
             output_point=dot(ipm,input_point);
             output_point[0]/=output_point[2];
             output_point[1]/=output_point[2];
-            drawPoint({x:output_point[0],y:output_point[1]},'blue',copy_ctx,5);
+            drawPoint_nXY({x:output_point[0]/canvas.width,y:output_point[1]/canvas.height},'blue',copy_ctx,copy_canvas,5);
             console.log(output_point);
         }
     }
@@ -173,9 +206,13 @@ function handleMouseUp(event) {
 
 // // 应用透视变换
 function applyPerspectiveTransform() {
+  const rect = canvas.getBoundingClientRect();
     const data = {
       src_points: srcPoints,
-      dst_points: dstPoints
+      dst_points: dstPoints,
+      court_img:court_img,
+      court_img_width:rect.width,
+      court_img_height:rect.height
     };
     fetch('/calculate_perspective_matrix', {
       method: 'POST',
@@ -201,9 +238,9 @@ function applyPerspectiveTransform() {
         img.onload = function() {
             var canvas = document.getElementById('canvas');
             var ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+            // canvas.width = img.width;
+            // canvas.height = img.height;
+            ctx.drawImage(img, 0, 0,img.width,img.height);
             drawPoints();
         };
       // 这里可以根据需要处理从服务器端接收到的透视变换矩阵

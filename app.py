@@ -155,8 +155,9 @@ def calculate_perspective_matrix():
     # 解析数据并转换为 NumPy 数组
     src_points = np.array([[point['x'], point['y']] for point in data['src_points']], dtype=np.float32)
     dst_points = np.array([[point['x'], point['y']] for point in data['dst_points']], dtype=np.float32)
+    court_img=data['court_img']
 
-    input_image = cv2.imread('static/court.png')
+    input_image = cv2.imread('static/'+court_img)
     # 定义输出图像的大小
     output_size = (input_image.shape[1], input_image.shape[0])  # 使用输入图像的大小
     try:
