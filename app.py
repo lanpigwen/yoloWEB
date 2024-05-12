@@ -29,8 +29,8 @@ error_image_base64 = base64.b64encode(buffer).decode('utf-8')
 app = Flask(__name__)
 @app.route('/')
 def index():
-    model.predict("test.png")
-    return render_template('t.html')
+    # model.predict("test.png")
+    return render_template('transferXY.html')
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -146,6 +146,43 @@ def uploadmp4():
     audio_file = request.files['mp4File']
     audio_file.save('audiotemp.mp4')
     return 'File uploaded successfully.', 200  # 返回成功响应
+
+@app.route('/calculate_perspective_matrix', methods=['POST'])
+def calculate_perspective_matrix():
+    # 获取 POST 请求中的数据
+    data = request.get_json()
+
+    # 解析数据并转换为 NumPy 数组
+    src_points = np.array([[point['x'], point['y']] for point in data['src_points']], dtype=np.float32)
+    dst_points = np.array([[point['x'], point['y']] for point in data['dst_points']], dtype=np.float32)
+
+    input_image = cv2.imread('static/court.png')
+    # 定义输出图像的大小
+    output_size = (input_image.shape[1], input_image.shape[0])  # 使用输入图像的大小
+    try:
+        # 计算透视变换矩阵
+        perspective_matrix = cv2.getPerspectiveTransform(src_points, dst_points)
+
+        inverse_perspective_matrix=cv2.getPerspectiveTransform(dst_points,src_points)
+        inverse_perspective_matrix_list = inverse_perspective_matrix.tolist()
+
+        output_image = cv2.warpPerspective(input_image, perspective_matrix, output_size,borderMode=cv2.BORDER_CONSTANT,borderValue=(255, 255, 255))
+
+
+        retval, buffer = cv2.imencode('.jpg', output_image)
+        output_image_base64 = base64.b64encode(buffer).decode('utf-8')
+
+        # 将图像的 base64 编码字符串添加到 JSON 对象中
+        response_data = {
+            'perspective_matrix': inverse_perspective_matrix_list,
+            'output_image_base64': output_image_base64
+        }
+
+        # 将 JSON 对象发送到前端
+        return jsonify(response_data), 200
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
      app.run(debug=True)  # 在调试模式下运行 Flask 应用
