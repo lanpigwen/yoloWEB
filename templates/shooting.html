@@ -368,7 +368,7 @@
                 </div>
                 <!-- 关键点定位按钮 -->
                 <div class="mb-3">
-                  <button type="button" class="btn btn-primary me-2" id="locatePoints">定位球场关键点</button>
+                  <button type="button" class="btn btn-primary me-2" id="locatePoints">重新选择球场</button>
                   <button type="button" class="btn btn-danger" id="EndlocatePoints" disabled>关键点定位结束</button>
                 </div>
               </div>
@@ -476,14 +476,16 @@
         const EndlocatePoints=document.getElementById("EndlocatePoints");
         var selectCourt=document.getElementById('selectCourt');
         // 使用document.getElementById获取下拉菜单按钮的DOM元素
-
         locatePoints.addEventListener("click", () => {
             // 模拟点击选择框来弹出选项
             selectCourt.style.display='flex';
             // let dropdownToggle = document.getElementById('dropdownMenuButton');
             // dropdownToggle.click();
 
-    });
+            });
+        EndlocatePoints.addEventListener('click',()=>{
+            court_canvas.style.display='none';
+        })
 
         // 获取元素
         const fpsDelayInput = document.getElementById('fpsDelayInput');
@@ -1418,8 +1420,13 @@ function polynomialFit(x, y, degree) {
                             (radus = 20),
                             (alpha = 0.3)
                         );
+                        if(srcPoints.length ==4){
+                            EndlocatePoints.disabled=false;
+                        }
                         return;
                     }
+
+                    
                     for (let i = 0; i < 4; i++) {
                         if (
                             Math.sqrt(
