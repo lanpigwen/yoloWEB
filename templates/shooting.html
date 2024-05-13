@@ -471,6 +471,8 @@
         var shooting_balls=[];
         let ball_trace_r=undefined;
         let pre_ball_state='normal';
+        var leftFoot=undefined;
+        var rightFoot=undefined;
 
         const locatePoints=document.getElementById("locatePoints");
         const EndlocatePoints=document.getElementById("EndlocatePoints");
@@ -650,6 +652,46 @@
             return {x:x,y:y};
             
         }
+        function canvas_n2court_XY(nx,ny){
+            let windowPoint=canvas_n2window_XY(nx,ny);
+            const rect = court_canvas.getBoundingClientRect();
+            const x = windowPoint.x - rect.left;
+            const y = windowPoint.y - rect.top;
+            return {x:x,y:y};
+
+        }
+        function canvas_n2right_court_XY(nx,ny){
+            let courtPoint=canvas_n2court_XY(nx,ny);
+
+            let input_point = [[courtPoint.x], [courtPoint.y], [1]];
+            let output_point;
+            if (ipm) {
+                output_point = dot(ipm, input_point);
+                output_point[0] /= output_point[2];
+                output_point[1] /= output_point[2];
+                let copy_x=(output_point[0] - court_x) / (court_canvas.width - 2 * court_x);
+                let copy_y=(output_point[1] - court_y) / (court_canvas.height - 2 * court_y);
+                //不超出范围
+                let radus=5;
+                let minX=radus/copy_canvas.width;
+                let minY=radus/copy_canvas.height;
+                copy_x = Math.max(minX, Math.min(copy_x, 1));
+                copy_y = Math.max(minY, Math.min(copy_y, 1));
+                drawPoint_nXY(
+                    {
+                        x: copy_x,
+                        y:copy_y,
+                    },
+                    "orange",
+                    copy_ctx,
+                    copy_canvas,
+                    radus
+                );
+                console.log(output_point);
+            }
+        }
+
+
         video.addEventListener('play',() =>{
             let match = blobURLPattern.exec(video.src);
             if (match) {
@@ -968,7 +1010,27 @@ function polynomialFit(x, y, degree) {
                 if(extra_data.player.length>=1){
                     player=extra_data.player[0];
                 }
-                
+                if(extra_data.coordinates.length>=1){
+                    keypoints=extra_data.coordinates[0];
+                    let left_hand=canvas_n2window_XY(keypoints[9][0],keypoints[9][1]);
+                    let right_hand=canvas_n2window_XY(keypoints[10][0],keypoints[10][1]);
+
+                    const existingSVGs = document.querySelectorAll('.progress-circle');
+                    for(let div of existingSVGs){
+                        const svg = div.querySelector('svg');
+                        let center=getSvgCenter(svg);
+                        let svg_r = svg.getBoundingClientRect().width/2.0;
+                        let offset=60;
+                        if(calculateDistance(center.x, center.y, left_hand.x, left_hand.y) < offset+svg_r || calculateDistance(center.x, center.y, right_hand.x, right_hand.y) < offset+svg_r){
+                            const clickEvent = new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                                });
+                            svg.dispatchEvent(clickEvent);
+                        }
+                    }  
+                }
                 if (extra_data.ball.length>=1){
                     let ball=extra_data.ball[0];
                     let bp1=canvas_n2canvas_XY(ball[0],ball[1]);
@@ -981,6 +1043,29 @@ function polynomialFit(x, y, degree) {
                         shooting_balls.push({x:cx,y:cy});
                         if(shooting_balls.length==1){
                             ball_trace_r=ball_r;
+                            // if(keypoints){
+                            //     console.log("player",keypoints)
+                            //     leftFoot=keypoints[15];
+                            //     rightFoot=keypoints[16];
+                            //     console.log("left right",leftFoot,rightFoot);
+                            //     let playerStand={x:(leftFoot[0]+rightFoot[0])/2,y:(leftFoot[1]+rightFoot[1])/2};
+                            //     console.log("stand",playerStand);
+                            //     let windowStand=canvas_n2canvas_XY(playerStand.x,playerStand.y);
+                            //     drawPoint(windowStand,'red',resultContext,20);
+                            //     canvas_n2right_court_XY(playerStand.x,playerStand.y);
+                            // }
+                            if(player){
+                                leftFoot=[player[0],player[3]];
+                                rightFoot=[player[2],player[3]];
+                                console.log("left right",leftFoot,rightFoot);
+                                let playerStand={x:(leftFoot[0]+rightFoot[0])/2,y:(leftFoot[1]+rightFoot[1])/2};
+                                console.log("stand",playerStand);
+                                let windowStand=canvas_n2canvas_XY(playerStand.x,playerStand.y);
+                                drawPoint(windowStand,'red',resultContext,20);
+                                canvas_n2right_court_XY(playerStand.x,playerStand.y);
+                                // console.log(player);
+                            }
+
                         }
                         //加上距离判断，过于离谱的点就不画
                         if(shooting_balls.length>2 ){
@@ -1080,27 +1165,7 @@ function polynomialFit(x, y, degree) {
                     }
                     pre_ball_state=extra_data.ball_state;
                 }
-                if(extra_data.coordinates.length>=1){
-                    keypoints=extra_data.coordinates[0];
-                    let left_hand=canvas_n2window_XY(keypoints[9][0],keypoints[9][1]);
-                    let right_hand=canvas_n2window_XY(keypoints[10][0],keypoints[10][1]);
 
-                    const existingSVGs = document.querySelectorAll('.progress-circle');
-                    for(let div of existingSVGs){
-                        const svg = div.querySelector('svg');
-                        let center=getSvgCenter(svg);
-                        let svg_r = svg.getBoundingClientRect().width/2.0;
-                        let offset=60;
-                        if(calculateDistance(center.x, center.y, left_hand.x, left_hand.y) < offset+svg_r || calculateDistance(center.x, center.y, right_hand.x, right_hand.y) < offset+svg_r){
-                            const clickEvent = new MouseEvent('click', {
-                                bubbles: true,
-                                cancelable: true,
-                                view: window
-                                });
-                            svg.dispatchEvent(clickEvent);
-                        }
-                    }  
-                }
             }
             
 
@@ -1175,7 +1240,7 @@ function polynomialFit(x, y, degree) {
                 let canvasWidth, canvasHeight;
                 var court_x;
                 var court_y;
-                let ipm = [
+                var ipm = [
                     [1, 0, 0],
                     [0, 1, 0],
                     [0, 0, 1],
@@ -1218,7 +1283,7 @@ function polynomialFit(x, y, degree) {
                         
                         dropdownToggle.click();
                         selectCourt=document.getElementById('selectCourt');
-                        console.log(selectCourt);
+                        // console.log(selectCourt);
                         selectCourt.style.display='none';
 
                     });
@@ -1408,7 +1473,7 @@ function polynomialFit(x, y, degree) {
                     const rect = court_canvas.getBoundingClientRect();
                     const x = event.clientX - rect.left;
                     const y = event.clientY - rect.top;
-                    console.log(x, y);
+                    // console.log(x, y);
                     if (srcPoints.length < 4) {
                         let point = { x: x, y: y };
                         srcPoints.push(point);
@@ -1436,26 +1501,25 @@ function polynomialFit(x, y, degree) {
                             selectedPoint = i;
                             return;
                         } else {
-                            drawPoint({ x: x, y: y }, "blue", court_ctx, 5);
-                            let input_point = [[x], [y], [1]];
-                            let output_point;
-                            if (ipm) {
-                                output_point = dot(ipm, input_point);
-                                output_point[0] /= output_point[2];
-                                output_point[1] /= output_point[2];
-                                drawPoint_nXY(
-                                    {
-                                        x: (output_point[0] - court_x) / (court_canvas.width - 2 * court_x),
-                                        y:
-                                            (output_point[1] - court_y) / (court_canvas.height - 2 * court_y),
-                                    },
-                                    "orange",
-                                    copy_ctx,
-                                    copy_canvas,
-                                    5
-                                );
-                                console.log(output_point);
-                            }
+                            // drawPoint({ x: x, y: y }, "blue", court_ctx, 5);
+                            // let input_point = [[x], [y], [1]];
+                            // let output_point;
+                            // if (ipm) {
+                            //     output_point = dot(ipm, input_point);
+                            //     output_point[0] /= output_point[2];
+                            //     output_point[1] /= output_point[2];
+                            //     drawPoint_nXY(
+                            //         {
+                            //             x: (output_point[0] - court_x) / (court_canvas.width - 2 * court_x),
+                            //             y:(output_point[1] - court_y) / (court_canvas.height - 2 * court_y),
+                            //         },
+                            //         "orange",
+                            //         copy_ctx,
+                            //         copy_canvas,
+                            //         5
+                            //     );
+                            //     console.log(output_point);
+                            // }
                         }
                     }
                     selectedPoint = -1;
