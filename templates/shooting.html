@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Recorder</title>
     <!-- 引入 Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
 
         /* 自定义CSS可以在此处添加 */
@@ -183,12 +185,6 @@
         z-index: 99;
         pointer-events: none;
     }
-    #CourtDisplay #copy_canvas {
-        opacity: 0.5;
-        pointer-events: none;
-        /* border-bottom-left-radius: 10%;
-        border-bottom-right-radius: 10%; */
-    }
 
   
 </style>
@@ -223,6 +219,88 @@
         position: absolute; */
     }
 </style>
+<style>
+/* 自定义下拉菜单样式 */
+.dropdown-menu-x {
+  flex-direction: row; /* 使菜单项横向排列 */
+  overflow-x: auto; /* 启用水平滚动条 */
+  white-space: nowrap; /* 防止内联块元素换行 */
+  padding: 0.5rem 0; /* 根据需要调整内边距 */
+}
+
+/* 使每个下拉项作为一个flex容器，确保图片和文本水平对齐 */
+.dropdown-item {
+  display: flex;
+  align-items: center; /* 垂直居中图片和文本 */
+  padding: 0.5rem; /* 根据需要调整内边距 */
+}
+
+/* 确保图片和文本在较小屏幕上也能适当显示 */
+@media (max-width: 768px) {
+  .dropdown-menu img {
+    max-width: 50px; /* 根据需要调整图片大小 */
+  }
+}
+
+/* 如果需要，可以添加滚动条的样式 */
+.dropdown-menu-x::-webkit-scrollbar {
+  height: 8px; /* 滚动条高度 */
+}
+
+.dropdown-menu-x::-webkit-scrollbar-thumb {
+  background-color: #666; /* 滚动条滑块颜色 */
+  border-radius: 10px; /* 滚动条滑块圆角 */
+}
+
+.dropdown-menu-x::-webkit-scrollbar-track {
+  background-color: #f0f0f0; /* 滚动条轨道颜色 */
+}
+
+</style>
+
+<style>
+    /* 使整个页面的内容居中 */
+    /* html, body {
+        height: 100%;
+        margin: 0;
+    } */
+    /* 使用Flexbox使页面内容垂直和水平居中 */
+    .aligner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    /* 下拉菜单样式 */
+    .dropdown-menu-x {
+      flex-direction: row;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 0.5rem 0;
+    }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+    }
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+      .dropdown-menu img {
+        max-width: 50px;
+      }
+    }
+    /* 滚动条样式 */
+    .dropdown-menu-x::-webkit-scrollbar {
+      height: 8px;
+    }
+    .dropdown-menu-x::-webkit-scrollbar-thumb {
+      background-color: #666;
+      border-radius: 10px;
+    }
+    .dropdown-menu-x::-webkit-scrollbar-track {
+      background-color: #f0f0f0;
+    }
+</style>
 </head>
 <body>
     <div id="topCanvasContainer">
@@ -233,55 +311,104 @@
         <img id="resultImg">
     </div>
 
-
+<!-- <img src="./static/R.jpg"> -->
     <div>
         <canvas id="court_canvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
         <div id="CourtDisplay">
             <canvas id="copy_canvas"></canvas>
         </div>
-        
     </div>
-    <div id="bottomControls" class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <!-- 用于上传MP4的文件输入 -->
-                <input type="file" id="fileInput" class="form-control mb-3" accept=".mp4,.mov">
-                <!-- 文件开始/停止录制按钮 -->
-                <div id="modeButtons" class="mb-3">
-                    <button id="realTimeModeButton" class="btn btn-primary mr-2">实时模式</button>
-                    <button id="postProcessingModeButton" class="btn btn-primary">后处理模式</button>
-                </div>
-                <div class="mb-3">
-                    <button id="startButtonFile" class="btn btn-primary mr-2">开始录制</button>
-                    <button id="stopButtonFile" class="btn btn-danger" disabled>停止录制</button>
-                    <button id="playButtonFile" class="btn btn-danger">继续录制</button>
-                    <button id="pauseButtonFile" class="btn btn-danger">暂停录制</button>
-                </div>
+    <div class="aligner" id="selectCourt">
+    <div class="container mt-5" style="z-index: 100; position: relative;">
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+            选择球场
+          </button>
+          <div class="dropdown-menu dropdown-menu-x">
+            <!-- 将li包裹在flex容器中 -->
+            <div class="d-flex">
+                <div class="dropdown-item" data-value="0court.png">
+                    <img src="./static/0court.png" alt="Image 1" class="img-thumbnail me-3">
+                  </div>
+                  <div class="dropdown-item" data-value="1court.png">
+                    <img src="./static/1court.png" alt="Image 2" class="img-thumbnail me-3">
+                  </div>
+                  <div class="dropdown-item" data-value="2court.png">
+                    <img src="./static/2court.png" alt="Image 3" class="img-thumbnail me-3">
+                  </div>
+              <!-- 可以添加更多的下拉项 -->
             </div>
-            <div class="col-md-6">
-                <!-- 开始/停止录制按钮 -->
-                <div class="mt-3">
-                    <button id="startButton" class="btn btn-primary mr-2">开始录制</button>
-                    <button id="stopButton" class="btn btn-danger" disabled>停止录制</button>
-                </div>
-                <!-- 跳转帧按钮 -->
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="jumpFrame">
-                    <label class="form-check-label" for="jumpFrame">跳转帧</label>
-                </div>
-                <div id="jumptext"></div>
-                <div>
-                    <label for="fpsDelayInput">FPS:</label>
-                    <input type="number" id="fpsDelayInput" value="15">
-                    <button id="updateFpsDelayButton">Update</button>
-                </div>
-            </div>
+          </div>
         </div>
+      </div>
     </div>
+      <div id="bottomControls" class="container">
+        <!-- 卡片组件开始 -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                文件上传与模式选择
+              </div>
+              <div class="card-body">
+                <!-- 文件上传 -->
+                <div class="mb-3">
+                  <input type="file" class="form-control" id="fileInput" accept=".mp4,.mov">
+                </div>
+                <!-- 模式切换按钮 -->
+                <div class="mb-3">
+                  <button type="button" class="btn btn-primary me-2" id="realTimeModeButton">实时模式</button>
+                  <button type="button" class="btn btn-primary" id="postProcessingModeButton">后处理模式</button>
+                </div>
+                <!-- 录制控制按钮 -->
+                <div class="mb-3">
+                  <button type="button" class="btn btn-primary me-2" id="startButtonFile">开始录制</button>
+                  <button type="button" class="btn btn-danger" id="stopButtonFile" disabled>停止录制</button>
+                </div>
+                <!-- 关键点定位按钮 -->
+                <div class="mb-3">
+                  <button type="button" class="btn btn-primary me-2" id="locatePoints">定位球场关键点</button>
+                  <button type="button" class="btn btn-danger" id="EndlocatePoints" disabled>关键点定位结束</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                录制控制与设置
+              </div>
+              <div class="card-body">
+                <!-- 录制控制按钮 -->
+                <div class="mb-3">
+                  <button type="button" class="btn btn-primary me-2" id="startButton">开始录制</button>
+                  <button type="button" class="btn btn-danger" id="stopButton" disabled>停止录制</button>
+                </div>
+                <!-- 跳转帧选项 -->
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" value="" id="jumpFrame">
+                  <label class="form-check-label" for="jumpFrame">跳转帧</label>
+                </div>
+                <!-- 跳转帧说明 -->
+                <div id="jumptext" class="mb-3 text-muted">选择跳转帧以加快视频处理速度。</div>
+                <!-- FPS设置 -->
+                <div class="mb-3">
+                  <label for="fpsDelayInput" class="form-label">FPS</label>
+                  <input type="number" class="form-control" id="fpsDelayInput" value="15">
+                  <button type="button" class="btn btn-primary mt-2" id="updateFpsDelayButton">更新</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 卡片组件结束 -->
+      </div>
+
     <script src="https://cdn.bootcdn.net/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js" integrity="sha512-7rusk8kGPFynZWu26OKbTeI+QPoYchtxsmPeBqkHIEXJxeun4yJ4ISYe7C6sz9wdxeE1Gk3VxsIWgCZTc+vX3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
     <script>
         // 你的JavaScript代码放在这里
         let videoStream;
@@ -345,8 +472,18 @@
         let ball_trace_r=undefined;
         let pre_ball_state='normal';
 
-        const playButtonFile=document.getElementById("playButtonFile");
-        const pauseButtonFile=document.getElementById("pauseButtonFile");
+        const locatePoints=document.getElementById("locatePoints");
+        const EndlocatePoints=document.getElementById("EndlocatePoints");
+        var selectCourt=document.getElementById('selectCourt');
+        // 使用document.getElementById获取下拉菜单按钮的DOM元素
+
+        locatePoints.addEventListener("click", () => {
+            // 模拟点击选择框来弹出选项
+            selectCourt.style.display='flex';
+            // let dropdownToggle = document.getElementById('dropdownMenuButton');
+            // dropdownToggle.click();
+
+    });
 
         // 获取元素
         const fpsDelayInput = document.getElementById('fpsDelayInput');
@@ -1041,7 +1178,7 @@ function polynomialFit(x, y, degree) {
                     [0, 1, 0],
                     [0, 0, 1],
                 ];
-                let court_img = "newshortcourt.png";
+                let court_img = "1court.png";
                 let real_court_img = "R6.png";
                 function dot(matrixA, matrixB) {
                     if (matrixA[0].length !== matrixB.length) {
@@ -1061,7 +1198,32 @@ function polynomialFit(x, y, degree) {
                     }
                     return result;
                 }
-    
+                                    // 获取所有的下拉菜单项
+                    const dropdownItems = document.querySelectorAll('.dropdown-item');
+                    var dropdownToggle = document.getElementById('dropdownMenuButton');
+
+                    // 为每个下拉菜单项添加点击事件监听器
+                    dropdownItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        // 获取当前点击的下拉菜单项的data-value属性
+                        const selectedImage = this.getAttribute('data-value');
+                        court_img = selectedImage;
+                        // TODO: 使用selectedImage做一些操作，比如更新页面上的某个元素或变量
+                        console.log(selectedImage);
+                        initCanvas()
+                        
+                        // 关闭下拉菜单
+                        
+                        dropdownToggle.click();
+                        selectCourt=document.getElementById('selectCourt');
+                        console.log(selectCourt);
+                        selectCourt.style.display='none';
+
+                    });
+                    });
+ 
+                    
+
                 // 初始化Canvas和图像
                 function initCanvas() {
                     court_canvas = document.getElementById("court_canvas");
@@ -1111,8 +1273,8 @@ function polynomialFit(x, y, degree) {
                         // 将处理后的图像数据绘制到 copy_canvas 上
                         tempCtx.putImageData(imageData, 0, 0);
 
-
-
+                        //透明度
+                        copy_ctx.globalAlpha=0.5;
                         copy_ctx.drawImage(
                             tempCanvas,
                             0,
@@ -1120,7 +1282,7 @@ function polynomialFit(x, y, degree) {
                             copy_canvas.width,
                             copy_canvas.height
                         );
-    
+                        copy_ctx.globalAlpha=1;
                         const maxWidth = window.innerWidth;
                         const maxHeight = window.innerHeight;
                         const imageWidth = srcImg.width;
@@ -1238,6 +1400,9 @@ function polynomialFit(x, y, degree) {
     
                 // 处理鼠标点击事件
                 function handleMouseDown(event) {
+                    if (bottomControls.style.display==='block'){
+                        bottomControls.style.display='none';
+                    }
                     const rect = court_canvas.getBoundingClientRect();
                     const x = event.clientX - rect.left;
                     const y = event.clientY - rect.top;
@@ -1277,7 +1442,7 @@ function polynomialFit(x, y, degree) {
                                         y:
                                             (output_point[1] - court_y) / (court_canvas.height - 2 * court_y),
                                     },
-                                    "blue",
+                                    "orange",
                                     copy_ctx,
                                     copy_canvas,
                                     5
@@ -1291,6 +1456,9 @@ function polynomialFit(x, y, degree) {
     
                 // 处理鼠标移动事件
                 function handleMouseMove(event) {
+                    // if (bottomControls.style.display==='block'){
+                    //     bottomControls.style.display='none';
+                    // }
                     if (selectedPoint >= 0) {
                         const rect = court_canvas.getBoundingClientRect();
                         const x = event.clientX - rect.left;
@@ -1302,6 +1470,17 @@ function polynomialFit(x, y, degree) {
     
                 // 处理鼠标释放事件
                 function handleMouseUp(event) {
+
+                    bottomControls.style.display = 'block';
+                                // 如果之前已经设置了定时器，则清除之前的定时器
+                    if (timer) {
+                        clearTimeout(timer);
+                    }
+                    // 设置一个定时器，在 6 秒后隐藏 #bottomControls
+                    timer = setTimeout(() => {
+                        bottomControls.style.display = 'none';
+                    }, 3000);
+
                     if (selectedPoint >= 0) {
                         drawScene();
                         selectedPoint = -1;
@@ -1350,11 +1529,13 @@ function polynomialFit(x, y, degree) {
                     court_canvas.addEventListener("mousemove", handleMouseMove);
                     court_canvas.addEventListener("mouseup", handleMouseUp);
                 }
-    
+
                 // 当DOM加载完成后初始化Canvas并设置事件监听器
                 document.addEventListener("DOMContentLoaded", function () {
                     initCanvas();
                     setupEventListeners();
+                    let dropdownToggle = document.getElementById('dropdownMenuButton');
+                    dropdownToggle.click();
                 });
             </script>
 </body>
