@@ -473,6 +473,7 @@
         let pre_ball_state='normal';
         var leftFoot=undefined;
         var rightFoot=undefined;
+        var playerStand=undefined;
 
         const locatePoints=document.getElementById("locatePoints");
         const EndlocatePoints=document.getElementById("EndlocatePoints");
@@ -660,7 +661,7 @@
             return {x:x,y:y};
 
         }
-        function canvas_n2right_court_XY(nx,ny){
+        function canvas_n2right_court_XY(nx,ny,score=true){
             let courtPoint=canvas_n2court_XY(nx,ny);
 
             let input_point = [[courtPoint.x], [courtPoint.y], [1]];
@@ -672,21 +673,35 @@
                 let copy_x=(output_point[0] - court_x) / (court_canvas.width - 2 * court_x);
                 let copy_y=(output_point[1] - court_y) / (court_canvas.height - 2 * court_y);
                 //不超出范围
-                let radus=5;
+                let radus=10;
                 let minX=radus/copy_canvas.width;
                 let minY=radus/copy_canvas.height;
                 copy_x = Math.max(minX, Math.min(copy_x, 1));
                 copy_y = Math.max(minY, Math.min(copy_y, 1));
-                drawPoint_nXY(
+                if (score){
+                    drawPoint_nXY_O(
                     {
                         x: copy_x,
                         y:copy_y,
                     },
-                    "orange",
+                    "green",
                     copy_ctx,
                     copy_canvas,
                     radus
                 );
+                }else{
+                    drawPoint_nXY_X(
+                    {
+                        x: copy_x,
+                        y:copy_y,
+                    },
+                    "red",
+                    copy_ctx,
+                    copy_canvas,
+                    radus
+                );
+                }
+
                 console.log(output_point);
             }
         }
@@ -1058,11 +1073,12 @@ function polynomialFit(x, y, degree) {
                                 leftFoot=[player[0],player[3]];
                                 rightFoot=[player[2],player[3]];
                                 console.log("left right",leftFoot,rightFoot);
-                                let playerStand={x:(leftFoot[0]+rightFoot[0])/2,y:(leftFoot[1]+rightFoot[1])/2};
+                                playerStand={x:(leftFoot[0]+rightFoot[0])/2,y:(leftFoot[1]+rightFoot[1])/2};
+
                                 console.log("stand",playerStand);
                                 let windowStand=canvas_n2canvas_XY(playerStand.x,playerStand.y);
                                 drawPoint(windowStand,'red',resultContext,20);
-                                canvas_n2right_court_XY(playerStand.x,playerStand.y);
+                                // canvas_n2right_court_XY(playerStand.x,playerStand.y);
                                 // console.log(player);
                             }
 
@@ -1159,6 +1175,8 @@ function polynomialFit(x, y, degree) {
                                 attemptsSpan.style.transform = 'scale(1)'; 
                             },200)
                         }, 50);
+
+                        canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=extra_data.score_count);
                         makesSpan.innerHTML=extra_data.score_count;
                         attemptsSpan.innerHTML=extra_data.shooting_count;
                         
@@ -1455,14 +1473,47 @@ function polynomialFit(x, y, degree) {
                     context.globalAlpha = 1;
                 }
     
-                function drawPoint_nXY(point,color,dstContext = copy_ctx,dstCanvas = copy_canvas,radus = 20,alpha = 0.3) {
-                    // dstContext.globalAlpha = alpha;
+                function drawPoint_nXY_O(point, color, dstContext = copy_ctx, dstCanvas = copy_canvas, radius = 20, alpha = 0.3) {
+                // 计算内外圆的半径
+                const outerRadius = radius ; // 外圆半径比内圆半径大2个像素
+                const innerRadius = radius-4;
+
+                // 绘制外圆（白色）
+                dstContext.beginPath();
+                dstContext.arc(point.x * dstCanvas.width, point.y * dstCanvas.height, outerRadius, 0, 2 * Math.PI);
+                dstContext.fillStyle = 'white'; // 外圆填充白色
+                dstContext.fill();
+                dstContext.closePath();
+
+                // 绘制内圆（橙色）
+                dstContext.beginPath();
+                dstContext.arc(point.x * dstCanvas.width, point.y * dstCanvas.height, innerRadius, 0, 2 * Math.PI);
+                dstContext.fillStyle = color; // 内圆填充橙色
+                dstContext.fill();
+                dstContext.closePath();
+            }
+
+                function drawPoint_nXY_X(point, color, dstContext = copy_ctx, dstCanvas = copy_canvas, size = 20, alpha = 0.3) {
+                    const x = point.x * dstCanvas.width;
+                    const y = point.y * dstCanvas.height;
+
+                    // 设置画笔颜色和粗细
+                    dstContext.strokeStyle = color;
+                    dstContext.lineWidth = size*0.25;
+
+                    // 绘制第一条斜线（\）
                     dstContext.beginPath();
-                    dstContext.arc(point.x * dstCanvas.width,point.y * dstCanvas.height,radus,0,2 * Math.PI);
-                    dstContext.fillStyle = color;
-                    dstContext.fill();
+                    dstContext.moveTo(x - size, y - size);
+                    dstContext.lineTo(x + size, y + size);
+                    dstContext.stroke();
                     dstContext.closePath();
-                    // dstContext.globalAlpha = 1;
+
+                    // 绘制第二条斜线（/）
+                    dstContext.beginPath();
+                    dstContext.moveTo(x + size, y - size);
+                    dstContext.lineTo(x - size, y + size);
+                    dstContext.stroke();
+                    dstContext.closePath();
                 }
     
                 // 处理鼠标点击事件
