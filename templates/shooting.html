@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Recorder</title>
+    <title>Shooting Practice</title>
     <!-- 引入 Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
@@ -42,8 +41,8 @@
             border-top: 1px solid #dee2e6; /* 控制栏上边框 */
             position: fixed; /* 绝对定位 */
             bottom: 20px; /* 底部对齐，并留出一定的间距 */
-            left: 50%; /* 左侧居中 */
-            transform: translateX(-50%); /* 通过 transform 属性水平居中 */
+            left: 50%;
+            transform: translateX(-50%);
             width: 90%; /* 宽度90%，留出一定的边距 */
             background-color: rgba(248, 249, 250, 0.8); /* 使用 rgba() 来定义背景色和透明度 */
             border-radius: 10px; /* 圆角处理，应用于所有四个角 */
@@ -70,6 +69,7 @@
         }
 
     </style>
+    
 <style>
     body {
         background-color: black; /* 设置页面背景颜色为黑色 */
@@ -93,7 +93,7 @@
         --offset: calc(var(--canvasWidth)*0.15*0.15);
 
         position: fixed;
-        bottom: calc(var(--canvasHeight)*0.01);
+        bottom: calc(var(--canvasTop));
         border-radius: 10%; 
         color: white; 
         display: flex; 
@@ -194,17 +194,6 @@
         z-index: 10;
         opacity: 0.5;
     }
-    #overlayCanvas {
-        opacity: 0;
-        /* 设置覆盖层的透明度 */
-        pointer-events: none;
-        /* 防止覆盖层拦截鼠标事件 */
-        left: 10px;
-        top: 10px;
-        /* border: 1px solid black; */
-        position: absolute;
-    }
-
     #copy_canvas {
         /* opacity: 1; */
         pointer-events: none;
@@ -219,59 +208,51 @@
         position: absolute; */
     }
 </style>
-<style>
-/* 自定义下拉菜单样式 */
+<!-- <style>
+
 .dropdown-menu-x {
-  flex-direction: row; /* 使菜单项横向排列 */
-  overflow-x: auto; /* 启用水平滚动条 */
-  white-space: nowrap; /* 防止内联块元素换行 */
-  padding: 0.5rem 0; /* 根据需要调整内边距 */
+  flex-direction: row;
+  overflow-x: auto;
+  white-space: nowrap; 
+  padding: 0.5rem 0; 
 }
 
-/* 使每个下拉项作为一个flex容器，确保图片和文本水平对齐 */
+
 .dropdown-item {
   display: flex;
-  align-items: center; /* 垂直居中图片和文本 */
-  padding: 0.5rem; /* 根据需要调整内边距 */
+  align-items: center; 
+  padding: 0.5rem; 
 }
 
-/* 确保图片和文本在较小屏幕上也能适当显示 */
+
 @media (max-width: 768px) {
   .dropdown-menu img {
-    max-width: 50px; /* 根据需要调整图片大小 */
+    max-width: 50px; 
   }
 }
 
-/* 如果需要，可以添加滚动条的样式 */
 .dropdown-menu-x::-webkit-scrollbar {
-  height: 8px; /* 滚动条高度 */
+  height: 8px;
 }
 
 .dropdown-menu-x::-webkit-scrollbar-thumb {
-  background-color: #666; /* 滚动条滑块颜色 */
-  border-radius: 10px; /* 滚动条滑块圆角 */
+  background-color: #666; 
+  border-radius: 10px; 
 }
 
 .dropdown-menu-x::-webkit-scrollbar-track {
-  background-color: #f0f0f0; /* 滚动条轨道颜色 */
+  background-color: #f0f0f0; 
 }
 
 </style>
 
 <style>
-    /* 使整个页面的内容居中 */
-    /* html, body {
-        height: 100%;
-        margin: 0;
-    } */
-    /* 使用Flexbox使页面内容垂直和水平居中 */
     .aligner {
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100%;
     }
-    /* 下拉菜单样式 */
     .dropdown-menu-x {
       flex-direction: row;
       overflow-x: auto;
@@ -283,13 +264,11 @@
       align-items: center;
       padding: 0.5rem;
     }
-    /* 响应式调整 */
     @media (max-width: 768px) {
       .dropdown-menu img {
         max-width: 50px;
       }
     }
-    /* 滚动条样式 */
     .dropdown-menu-x::-webkit-scrollbar {
       height: 8px;
     }
@@ -300,21 +279,17 @@
     .dropdown-menu-x::-webkit-scrollbar-track {
       background-color: #f0f0f0;
     }
-</style>
+</style> -->
 </head>
 <body>
     <div id="topCanvasContainer">
-        <!-- 用于结果的画布 -->
         <canvas id="resultCanvas"></canvas>
         <canvas id="BalltempCanvas"></canvas>
         <video id="videoElement" autoplay></video>
         <img id="resultImg">
     </div>
-
-<!-- <img src="./static/R.jpg"> -->
     <div>
         <canvas id="court_canvas"></canvas>
-        <canvas id="overlayCanvas"></canvas>
         <div id="CourtDisplay">
             <canvas id="copy_canvas"></canvas>
         </div>
@@ -326,7 +301,6 @@
             选择球场
           </button>
           <div class="dropdown-menu dropdown-menu-x">
-            <!-- 将li包裹在flex容器中 -->
             <div class="d-flex">
                 <div class="dropdown-item" data-value="0court.png">
                     <img src="./static/0court.png" alt="Image 1" class="img-thumbnail me-3">
@@ -1264,7 +1238,6 @@ function polynomialFit(x, y, degree) {
                     [0, 0, 1],
                 ];
                 let court_img = "1court.png";
-                let real_court_img = "R6.png";
                 function dot(matrixA, matrixB) {
                     if (matrixA[0].length !== matrixB.length) {
                         throw "矩阵尺寸不兼容";
@@ -1325,8 +1298,16 @@ function polynomialFit(x, y, degree) {
     
                     srcImg = new Image();
                     srcImg.onload = () => {
-                        copy_canvas.width = srcImg.width * 0.5;
-                        copy_canvas.height = srcImg.height * 0.5;
+                        // copy_canvas.width = srcImg.width * 0.5;
+                        // copy_canvas.height = srcImg.height * 0.5;
+                        // 假设 `srcImg` 是原始图像的引用
+                        
+                        var screen_width = window.innerWidth; // 获取当前屏幕的宽度
+                        var scale_factor = screen_width / 5; // 设置宽度为屏幕宽度的1/5
+                        // 计算等比例缩放的宽度和高度
+                        copy_canvas.width = srcImg.width * (scale_factor / srcImg.width);
+                        copy_canvas.height = srcImg.height * (scale_factor / srcImg.height);
+
                         // 创建临时 Canvas
                         const tempCanvas = document.createElement('canvas');
                         const tempCtx = tempCanvas.getContext('2d');
@@ -1415,22 +1396,6 @@ function polynomialFit(x, y, degree) {
                         resetPoints();
                     };
                     srcImg.src = "static/" + court_img; // 替换为你的图像路径
-    
-                    let overImg = new Image();
-                    overImg.onload = () => {
-                        over_canvas = document.getElementById("overlayCanvas");
-                        over_ctx = over_canvas.getContext("2d");
-                        over_canvas.width = overImg.width;
-                        over_canvas.height = overImg.height;
-                        over_ctx.drawImage(
-                            overImg,
-                            0,
-                            0,
-                            over_canvas.width,
-                            over_canvas.height
-                        );
-                    };
-                    overImg.src = "static/" + real_court_img;
                 }
     
                 // 重置映射点到默认位置

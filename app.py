@@ -32,7 +32,29 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     # model.predict("test.png")
+    return render_template('index.html')
+
+@app.route('/shootingPractice')
+def shootingPractice():
+    model.predict("test.png")
     return render_template('shooting.html')
+
+@app.route('/dribblePractice')
+def dribblePractice():
+    model.predict("test.png")
+    return render_template('drible.html')
+
+@app.route('/dribbleCountPractice')
+def dribbleCountPractice():
+    model.predict("test.png")
+    return render_template('counter.html')
+
+@app.route('/dribbleReactPractice')
+def dribbleReactPractice():
+    model.predict("test.png")
+    return render_template('handsReact.html')
+
+
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
