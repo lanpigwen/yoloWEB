@@ -78,13 +78,13 @@ function drawLineGraph(data, svgId='LineSvg') {
         .attr("class", "line miss")
         .attr("d", line2);
 
-    // 添加标题
-    svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", 0 - (margin.top / 2))
-        .attr("text-anchor", "middle")
-        .style("font-size", "24px")
-        .text("投篮记录");
+    // // 添加标题
+    // svg.append("text")
+    //     .attr("x", width / 2)
+    //     .attr("y", 0 - (margin.top / 2))
+    //     .attr("text-anchor", "middle")
+    //     .style("font-size", "24px")
+    //     .text("投篮记录");
 
     // 添加图例
     const el_make = document.querySelectorAll('.make')[0];

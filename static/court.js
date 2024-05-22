@@ -40,7 +40,7 @@ function distanceBetweenPoints(x1, y1, x2, y2) {
               }
           }
           ctx.fill();
-          let fontSize=20;
+          let fontSize=canvas.width*0.03;
           ctx.font = fontSize+"px Arial";
           ctx.fillStyle = "white"; // 文字颜色
           ctx.textAlign = "center"; 
@@ -60,6 +60,9 @@ function distanceBetweenPoints(x1, y1, x2, y2) {
           if(zone.idx==6){
               ay-=0.19*(max_y-min_y);
           }
+          if(zone.idx==11){
+            ay-=0.3*(max_y-min_y);
+        }
   
           if(zone.attampt>0){
               let text_percent=toPercentage(zone.make,zone.attampt);
