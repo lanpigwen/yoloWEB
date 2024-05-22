@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>折线图示例</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 10px;
+        }
+
+        .make {
+            stroke: #f55602;
+        }
+
+        .miss {
+            stroke: #5b74a6;
+        }
+    </style>
+    <style>
+        #legend {
+            display: flex;
+            /* justify-content: center; */
+            flex-wrap: wrap; /* 确保图例项可以根据需要换行 */
+            margin-top: 0px;
+            margin-left: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px; /* 间隔 */
+        }
+        .legend-color {
+            width: 20px; /* 颜色块的宽度 */
+            height: 20px; /* 颜色块的高度 */
+            margin-right: 5px; /* 颜色块和文字的间隔 */
+        }
+        .lower { background-color: rgba(89, 164, 222, 1); }
+        .average { background-color: rgba(247, 214, 73, 1); }
+        .high { background-color: rgba(220, 117, 58, 1); }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+        }
+
+        .courtDiv {
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .courtDiv canvas{
+            margin-bottom: 10px; 
+        }
+    </style>
+    <script src="script.js"></script>
+    <script src="court.js"></script>
+</head>
+<body>
+    <svg id="LineSvg" width="600" height="600"></svg>
+    <div class="courtDiv">
+        <canvas id="myCanvas" ></canvas>
+        <div id="legend">
+            <div class="legend-item">
+                <div class="legend-color high"></div>
+                <div>高于平均水平</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color average"></div>
+                <div>处于平均水平</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color lower"></div>
+                <div>低于平均水平</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const data = Array.from({ length: 7 }, (_, i) => ({
+            day: i + 1,
+            hits: Math.floor(Math.random() * 50) + 1,  // 命中数随机生成
+            misses: Math.floor(Math.random() * 50) + 1  // 不命中数随机生成
+        }));
+        drawLineGraph(data, svgId='LineSvg');
+        
+    </script>
+    <script>
+        var canvas = document.getElementById('myCanvas');
+        var ctx = canvas.getContext('2d');
+        let shootingInfo=[
+            {nx:0.5,ny:0.5,score:true},
+            {nx:0.5,ny:0.5,score:true},
+            {nx:0.2,ny:0.5,score:false},
+            {nx:0.5,ny:0.2,score:true},
+            {nx:0.1,ny:0.2,score:true},
+            {nx:0.1,ny:0.23,score:true},
+            {nx:0.7,ny:0.2,score:true},
+            {nx:0.65,ny:0.32,score:false},
+            {nx:0.45,ny:0.78,score:true},
+            {nx:0.57,ny:0.68,score:false},
+            {nx:0.5,ny:0.88,score:false}
+
+        ];
+
+        drawCourt(canvas,ctx,shootingInfo,600,10,'white',
+                        null_color='rgba(180, 180, 180, 1)',
+                        lower_color='rgba(89, 164, 222, 1)',
+                        average_color='rgba(247, 214, 73,1)',
+                        high_color='rgba(220, 117, 58, 1)',
+                        lower_percent=0.3,
+                        high_percent=0.5);
+    </script>
+
+</body>
+</html>

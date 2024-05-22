@@ -13,16 +13,9 @@
 <canvas id="myCanvas"></canvas>
 
 <script>
-  // JavaScript代码将在这里
-  // 获取canvas元素和它的2D渲染上下文
-var canvas = document.getElementById('myCanvas');
-var ctx = canvas.getContext('2d');
-let make_attampt=[
-        [11,26],
-        [1,2],[8,10],[1,1],
-        [0,1],[0,0],[0,1],[1,1],[0,0],
-        [1,2],[3,10],[4,11],[9,22],[1,2]
-    ]
+
+// var canvas = document.getElementById('myCanvas');
+// var ctx = canvas.getContext('2d');
 
 function distanceBetweenPoints(x1, y1, x2, y2) {
   var dx = x2 - x1;
@@ -642,28 +635,28 @@ function drawCourt(canvas,ctx,shootingInfo,courtWidth=800,borderXY=10,drawMainLi
   
 };
 
-let shootingInfo=[
-    {nx:0.5,ny:0.5,score:true},
-    {nx:0.5,ny:0.5,score:true},
-    {nx:0.2,ny:0.5,score:false},
-    {nx:0.5,ny:0.2,score:true},
-    {nx:0.1,ny:0.2,score:true},
-    {nx:0.1,ny:0.23,score:true},
-    {nx:0.7,ny:0.2,score:true},
-    {nx:0.65,ny:0.32,score:false},
-    {nx:0.45,ny:0.78,score:true},
-    {nx:0.57,ny:0.68,score:false},
-    {nx:0.5,ny:0.88,score:false}
+// let shootingInfo=[
+//     {nx:0.5,ny:0.5,score:true},
+//     {nx:0.5,ny:0.5,score:true},
+//     {nx:0.2,ny:0.5,score:false},
+//     {nx:0.5,ny:0.2,score:true},
+//     {nx:0.1,ny:0.2,score:true},
+//     {nx:0.1,ny:0.23,score:true},
+//     {nx:0.7,ny:0.2,score:true},
+//     {nx:0.65,ny:0.32,score:false},
+//     {nx:0.45,ny:0.78,score:true},
+//     {nx:0.57,ny:0.68,score:false},
+//     {nx:0.5,ny:0.88,score:false}
 
-];
+// ];
 
-drawCourt(canvas,ctx,shootingInfo,600,10,'white',
-                null_color='rgba(180, 180, 180, 1)',
-                lower_color='rgba(89, 164, 222, 1)',
-                average_color='rgba(247, 214, 73,1)',
-                high_color='rgba(220, 117, 58, 1)',
-                lower_percent=0.3,
-                high_percent=0.5);
+// drawCourt(canvas,ctx,shootingInfo,600,10,'white',
+//                 null_color='rgba(180, 180, 180, 1)',
+//                 lower_color='rgba(89, 164, 222, 1)',
+//                 average_color='rgba(247, 214, 73,1)',
+//                 high_color='rgba(220, 117, 58, 1)',
+//                 lower_percent=0.3,
+//                 high_percent=0.5);
 
 </script>
 </body>
