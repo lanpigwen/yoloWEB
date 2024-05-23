@@ -535,7 +535,12 @@
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
-                });
+                }).then(response => {
+                    window.location.href='/afterShooting'+'?uuid='+uniqueIdentifier+'&court_img='+court_img;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });;;
                 video.pause();
                 console.log(frameCount);
         })
@@ -802,7 +807,12 @@
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
-                });
+                }).then(response => {
+                    window.location.href='/afterShooting'+'?uuid='+uniqueIdentifier+'&court_img='+court_img;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });;
                 // console.log(points_and_time);
         });
 
@@ -848,6 +858,7 @@
             audioStream.getTracks().forEach(track => track.stop());
             startButton.disabled = false;
             stopButton.disabled = true;
+
         });
 
         jumpFrame.addEventListener("click", () => {

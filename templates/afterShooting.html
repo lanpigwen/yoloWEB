@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据可视化展示</title>
+    <link rel="icon" href="static/5logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .profile-header {
+            /* background: url('../static/2index.jpg'); */
+            background-size: cover;
+            /* padding: 20px; */
+            padding-top: 0px ;
+            text-align: center;
+            color: white;
+            margin-bottom: 15px;
+        }
+        .chart-container {
+            margin-top: 10px;
+        }
+        .chart {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 10px;
+        }
+
+        .make {
+            stroke: #f55602;
+        }
+
+        .miss {
+            stroke: #5b74a6;
+        }
+    </style>
+    <style>
+        #legend {
+            display: flex;
+            /* justify-content: center; */
+            flex-wrap: wrap; /* 确保图例项可以根据需要换行 */
+            margin-top: 0px;
+            margin-left: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px; /* 间隔 */
+        }
+        .legend-color {
+            width: 20px; /* 颜色块的宽度 */
+            height: 20px; /* 颜色块的高度 */
+            margin-right: 5px; /* 颜色块和文字的间隔 */
+        }
+        .lower { background-color: rgba(89, 164, 222, 1); }
+        .average { background-color: rgba(247, 214, 73, 1); }
+        .high { background-color: rgba(220, 117, 58, 1); }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+        }
+
+        .courtDiv {
+            width: 100%;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .courtDiv canvas{
+            width: 100%;
+            /* height: 100%; */
+            margin-top: 10px;
+            margin-bottom: 5px; 
+        }
+    </style>
+    <script src="../static/script.js"></script>
+    <script src="../static/court.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand mb-0 h1" href="/"><i class="bi bi-chevron-left"></i>返回</a>
+                <span class="navbar-text mx-auto h1">训练结束</span>
+            </div>
+        </nav>
+        <div class="container mt-3">
+            <div class="row align-items-center">
+                <div class="col-1">
+                    <img src="../static/avator0.png" class="rounded-circle" alt="User Avatar" width="100%">
+                </div>
+                <div class="col">
+                    <h3 id="username">用户名</h3>
+                    <p id="trainTime">May 4 at 10:53PM</p>
+                    <p><i class="bi bi-stopwatch"></i>1m0s <i class="bi bi-geo-alt"></i>未知</p>
+                </div>
+            </div>
+        </div>
+        <div class="row chart-container">
+            <div class="col-md-6">
+                <div class="chart" >
+                    <h2>投篮散点图</h2>
+                    <div class="courtDiv">
+                        <canvas id="shootReplay"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart">
+                    <h2>命中分布图</h2>
+                    <div class="courtDiv">
+                        <canvas id="myCanvas"></canvas>
+                        <div id="legend">
+                            <div class="legend-item">
+                                <div class="legend-color high"></div>
+                                <div>高于平均水平</div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color average"></div>
+                                <div>处于平均水平</div>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color lower"></div>
+                                <div>低于平均水平</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>        
+    <script>
+            function drawPoint_nXY_O(point, color, dstContext , dstCanvas , radius = 20, alpha = 0.3) {
+                // 计算内外圆的半径
+                const outerRadius = radius ; // 外圆半径比内圆半径大2个像素
+                const innerRadius = radius-4;
+
+                // 绘制外圆（白色）
+                dstContext.beginPath();
+                dstContext.arc(point.x * dstCanvas.width, point.y * dstCanvas.height, outerRadius, 0, 2 * Math.PI);
+                dstContext.fillStyle = 'white'; // 外圆填充白色
+                dstContext.fill();
+                dstContext.closePath();
+
+                // 绘制内圆（橙色）
+                dstContext.beginPath();
+                dstContext.arc(point.x * dstCanvas.width, point.y * dstCanvas.height, innerRadius, 0, 2 * Math.PI);
+                dstContext.fillStyle = color; // 内圆填充橙色
+                dstContext.fill();
+                dstContext.closePath();
+            }
+
+            function drawPoint_nXY_X(point, color, dstContext , dstCanvas , size = 20, alpha = 0.3) {
+                    const x = point.x * dstCanvas.width;
+                    const y = point.y * dstCanvas.height;
+
+                    // 设置画笔颜色和粗细
+                    dstContext.strokeStyle = color;
+                    dstContext.lineWidth = size*0.25;
+
+                    // 绘制第一条斜线（\）
+                    dstContext.beginPath();
+                    dstContext.moveTo(x - size, y - size);
+                    dstContext.lineTo(x + size, y + size);
+                    dstContext.stroke();
+                    dstContext.closePath();
+
+                    // 绘制第二条斜线（/）
+                    dstContext.beginPath();
+                    dstContext.moveTo(x + size, y - size);
+                    dstContext.lineTo(x - size, y + size);
+                    dstContext.stroke();
+                    dstContext.closePath();
+                }
+
+    </script>
+    <script>
+                let shootingInfo=[
+            {nx:0.5,ny:0.5,score:true},
+            {nx:0.5,ny:0.5,score:true},
+            {nx:0.2,ny:0.5,score:false},
+            {nx:0.5,ny:0.2,score:true},
+            {nx:0.1,ny:0.2,score:true},
+            {nx:0.1,ny:0.23,score:true},
+            {nx:0.7,ny:0.2,score:true},
+            {nx:0.65,ny:0.32,score:false},
+            {nx:0.45,ny:0.78,score:true},
+            {nx:0.57,ny:0.68,score:false},
+            {nx:0.5,ny:0.88,score:false}
+
+        ];
+
+        function drawDynamic(court1_ctx,court1_canvas,shootingInfo,idx=0,dept=1000){
+            if(idx<shootingInfo.length){
+                console.log(idx)
+                if(shootingInfo[idx].score){
+                    drawPoint_nXY_O({x:shootingInfo[idx].nx,y:shootingInfo[idx].ny},'green',court1_ctx,court1_canvas);
+                }
+                else{
+                    drawPoint_nXY_X({x:shootingInfo[idx].nx,y:shootingInfo[idx].ny},'red',court1_ctx,court1_canvas);
+                }
+                setTimeout(() => drawDynamic(court1_ctx, court1_canvas, shootingInfo, idx + 1, dept), dept);
+            }
+        }
+        const queryParams = new URLSearchParams(window.location.search);
+        const param1 = queryParams.get('uuid'); // 获取param1的值
+        const param2=queryParams.get('court_img');
+        console.log(param1,param2)
+        let court_img = "static/" + param2; // 替换为你的图像路径
+        var court1_canvas = document.getElementById('shootReplay');
+        var court1_ctx = court1_canvas.getContext('2d');
+
+        var imageObj = new Image();
+
+        imageObj.src = court_img;
+        imageObj.onload = function() {
+            court1_canvas.width = imageObj.width;
+            court1_canvas.height = imageObj.height;
+            court1_ctx.clearRect(0, 0, court1_canvas.width, court1_canvas.height);
+            court1_ctx.drawImage(imageObj, 0, 0, court1_canvas.width, court1_canvas.height);
+            let dept=200;         
+            setTimeout(() => drawDynamic(court1_ctx, court1_canvas, shootingInfo, 0,dept), dept);
+        };
+        
+        console.log(param1,param2);
+
+        court1_canvas.addEventListener('click',()=>{
+            court1_ctx.clearRect(0, 0, court1_canvas.width, court1_canvas.height);
+            court1_ctx.drawImage(imageObj, 0, 0, court1_canvas.width, court1_canvas.height);
+            let dept=200;         
+            setTimeout(() => drawDynamic(court1_ctx, court1_canvas, shootingInfo, 0,dept), dept);
+        })
+        var canvas = document.getElementById('myCanvas');
+        var ctx = canvas.getContext('2d');
+
+
+        drawCourt(canvas,ctx,shootingInfo,1000,Math.max(1,1000*(1/50)),'white',
+                        null_color='rgba(180, 180, 180, 1)',
+                        lower_color='rgba(89, 164, 222, 1)',
+                        average_color='rgba(247, 214, 73,1)',
+                        high_color='rgba(220, 117, 58, 1)',
+                        lower_percent=0.3,
+                        high_percent=0.5);
+
+    </script>
+</body>
+</html>

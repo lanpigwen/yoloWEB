@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, Response,send_file,jsonify
+from flask import Flask, render_template, request, Response,send_file,jsonify,redirect,url_for
 import base64
 import numpy as np
 import cv2
@@ -19,7 +19,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编解码器
 MAX_QUEUE_LENGTH = 3  # 假设队列长度为5
 frame_queue = deque(maxlen=MAX_QUEUE_LENGTH)
 all_frame=[]
-
+shootingInfo=[]
 # 读取错误图片并转换为OpenCV格式
 error_image = cv2.imread('test.png')
 
@@ -58,6 +58,10 @@ def dribbleReactPractice():
 def dataView():
     # model.predict("test.png")
     return render_template('view.html')
+
+@app.route('/afterShooting')
+def afterShooting():
+    return render_template('afterShooting.html')
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -126,6 +130,7 @@ def process_frame():
 
 
 
+
 @app.route('/upload', methods=['POST'])
 def upload():
     width=int(request.form.get('imgWidth'))
@@ -159,7 +164,10 @@ def upload():
             return 'No file part', 400
         del allDataList[uuid]
         # os.remove('temp.mp4')
-        return send_file('output.mp4', as_attachment=True)
+        # return send_file('output.mp4', as_attachment=True)
+        # return redirect(url_for('afterShooting'))
+        return 'ok', 200
+
     else:
         print(uuid)
         return 'No UUID', 400
