@@ -25,7 +25,7 @@ function drawLineGraph(data, svgId='LineSvg') {
         .range([height, 0]);
 
     const xAxis = d3.axisBottom(x)
-        .tickValues(d3.range(1, data.length+1, 1+(data.length>7?1:0)))
+        .tickValues(d3.range(1, data.length+1, 1+(data.length>12?1:0)))
         .tickFormat(d3.format('d'));
 
     const yAxis = d3.axisLeft(y).ticks(5).tickSizeInner(-width);

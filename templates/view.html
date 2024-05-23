@@ -120,8 +120,7 @@
                   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon" ></span>
                   </button>
-                  <img src="../static/5logo.png" alt="logo" class="navbar-toggler-icon" >
-                  <a class="navbar-brand ms-3" href="#">数据中心</a>
+                  <a class="navbar-brand" href="#"><img src="static/5logo.png" alt="logo" class="navbar-toggler-icon me-2" >数据中心</a>
                   <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                       <li class="nav-item">
@@ -138,15 +137,22 @@
             </div>
         </div>
         <ul class="nav nav-tabs">
-            <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="#">周数据</a>
+            <li class="nav-item col-md-2">
+              <a class="nav-link active" aria-current="page" href="#" data-x="weekly">周数据</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">月数据</a>
+            <li class="nav-item col-md-2">
+              <a class="nav-link" href="#" data-x="monthly">月数据</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">历史数据</a>
-            </li>
+            <li class="nav-item col-md-2">
+              <a class="nav-link" href="#" data-x="all-time">年数据</a>
+            </li class="col-md-6">
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-center align-items-center my-3">
+                        <button id="prev" class="btn btn-outline-secondary"> < </button>
+                        <span id="date-display" class="mx-3 fs-4"></span>
+                        <button id="next" class="btn btn-outline-secondary"> > </button>
+                    </div>
+                </div>
           </ul>
         <div class="row chart-container">
             <div class="col-md-6">
@@ -185,7 +191,128 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const data = Array.from({ length: 7 }, (_, i) => ({
+        const dateDisplay = document.getElementById('date-display');
+        const prevButton = document.getElementById('prev');
+        const nextButton = document.getElementById('next');
+
+        const prevYearButton = document.getElementById('prev-year');
+        const nextYearButton = document.getElementById('next-year');
+    
+        let currentDate = new Date();  // 设置初始日期为2024年4月
+        function updateWeekDisplay() {
+            let startOfWeek = new Date(currentDate);
+            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1);  // 设置为本周一
+            let endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);  // 设置为本周日
+    
+            const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+            dateDisplay.textContent = `${dateFormatter.format(startOfWeek)} - ${dateFormatter.format(endOfWeek)}`;
+        }
+
+        function updateDateDisplay() {
+            const monthNames = ["一月", "二月", "三月", "四月", "五月", "六月",
+                "七月", "八月", "九月", "十月", "十一月", "十二月"];
+
+            dateDisplay.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        }
+
+        function updateDateDisplayYear() {
+            dateDisplay.textContent = `${currentDate.getFullYear()}`;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            prevButton.addEventListener('click', () => {
+                if(dataX=='weekly'){
+                    currentDate.setDate(currentDate.getDate() - 7);  
+                    updateWeekDisplay();
+                }
+                else if (dataX=='monthly'){
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                    updateDateDisplay();
+                }
+                else if(dataX=='all-time'){
+                    currentDate.setFullYear(currentDate.getFullYear() - 1);
+                    updateDateDisplayYear();
+                }
+
+            });
+        
+            nextButton.addEventListener('click', () => {
+                if(dataX=='weekly'){
+                    currentDate.setDate(currentDate.getDate() + 7);
+                    updateWeekDisplay();
+                }
+                else if (dataX=='monthly'){
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    updateDateDisplay();
+                }
+                else if(dataX=='all-time'){
+                    currentDate.setFullYear(currentDate.getFullYear() + 1);
+                    updateDateDisplayYear();
+                }
+            });
+            if(dataX=='weekly'){
+                updateWeekDisplay();
+            }
+            else if (dataX=='monthly'){
+                updateDateDisplay();
+            }
+            else if(dataX=='all-time'){
+                updateDateDisplayYear();
+            }
+        });
+    </script>
+        
+    <script>
+        var data;
+        var dataX='weekly';
+        document.addEventListener("DOMContentLoaded", function() {
+            var navLinks = document.querySelectorAll(".nav-item a");
+            // 为每个链接添加点击事件监听器
+            navLinks.forEach(function(link) {
+                link.addEventListener("click", function(event) {
+                    // event.preventDefault();  // 阻止链接默认跳转行为
+
+                    // 移除所有链接的active类
+                    navLinks.forEach(function(link) {
+                        link.classList.remove("active");
+                    });
+
+                    // 给被点击的链接添加active类
+                    this.classList.add("active");
+                    dataX = this.dataset.x;
+                    if(dataX=='weekly'){
+                        data = Array.from({ length: 7 }, (_, i) => ({
+                            day: i + 1,
+                            hits: Math.floor(Math.random() * 50) + 1,  // 命中数随机生成
+                            misses: Math.floor(Math.random() * 50) + 1  // 不命中数随机生成
+                        }));
+                        updateWeekDisplay();
+                    }
+                    else if(dataX=='monthly'){
+                        data = Array.from({ length: 31 }, (_, i) => ({
+                            day: i + 1,
+                            hits: Math.floor(Math.random() * 50) + 1,  // 命中数随机生成
+                            misses: Math.floor(Math.random() * 50) + 1  // 不命中数随机生成
+                        }));
+                        updateDateDisplay();
+                    }
+                    else if(dataX=='all-time'){
+                        data = Array.from({ length: 12 }, (_, i) => ({
+                            day: i + 1,
+                            hits: Math.floor(Math.random() * 50) + 1,  // 命中数随机生成
+                            misses: Math.floor(Math.random() * 50) + 1  // 不命中数随机生成
+                        }));
+                        updateDateDisplayYear();
+                    }
+                    setSvgSize();
+
+                });
+            });
+        });
+    </script>
+
+    <script>
+        data = Array.from({ length: 7 }, (_, i) => ({
             day: i + 1,
             hits: Math.floor(Math.random() * 50) + 1,  // 命中数随机生成
             misses: Math.floor(Math.random() * 50) + 1  // 不命中数随机生成

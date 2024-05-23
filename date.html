@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Date Picker with Bootstrap 5</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-center align-items-center my-3">
+                    <button id="prev" class="btn btn-outline-secondary"> < </button>
+                    <span id="date-display" class="mx-3 fs-4">APRIL 2024</span>
+                    <button id="next" class="btn btn-outline-secondary"> > </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const dateDisplay = document.getElementById('date-display');
+        const prevButton = document.getElementById('prev');
+        const nextButton = document.getElementById('next');
+
+        let currentDate = new Date(2024, 3);  // APRIL 2024
+
+        function updateDateDisplay() {
+            const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+                                "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+            dateDisplay.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        }
+
+        prevButton.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateDateDisplay();
+        });
+
+        nextButton.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateDateDisplay();
+        });
+
+        updateDateDisplay();  // 初始化显示日期
+    });
+    </script>
+</body>
+</html>
