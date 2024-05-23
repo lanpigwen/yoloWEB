@@ -196,19 +196,43 @@
     </script>
     <script>
                 let shootingInfo=[
-            {nx:0.5,ny:0.5,score:true},
-            {nx:0.5,ny:0.5,score:true},
-            {nx:0.2,ny:0.5,score:false},
-            {nx:0.5,ny:0.2,score:true},
-            {nx:0.1,ny:0.2,score:true},
-            {nx:0.1,ny:0.23,score:true},
-            {nx:0.7,ny:0.2,score:true},
-            {nx:0.65,ny:0.32,score:false},
-            {nx:0.45,ny:0.78,score:true},
-            {nx:0.57,ny:0.68,score:false},
-            {nx:0.5,ny:0.88,score:false}
+            // {nx:0.5,ny:0.5,score:true},
+            // {nx:0.5,ny:0.5,score:true},
+            // {nx:0.2,ny:0.5,score:false},
+            // {nx:0.5,ny:0.2,score:true},
+            // {nx:0.1,ny:0.2,score:true},
+            // {nx:0.1,ny:0.23,score:true},
+            // {nx:0.7,ny:0.2,score:true},
+            // {nx:0.65,ny:0.32,score:false},
+            // {nx:0.45,ny:0.78,score:true},
+            // {nx:0.57,ny:0.68,score:false},
+            // {nx:0.5,ny:0.88,score:false}
 
         ];
+
+        function getData(uuid){
+            fetch("/getShootingInfo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    uuid:uuid
+                }),
+                })
+                .then((response) => response.json())
+                .then((shooting_data) => {
+                    shootingInfo=shooting_data.shootingInfo;
+                    drawCourt(canvas,ctx,shootingInfo,1000,Math.max(1,1000*(1/50)),'white',
+                        null_color='rgba(180, 180, 180, 1)',
+                        lower_color='rgba(89, 164, 222, 1)',
+                        average_color='rgba(247, 214, 73,1)',
+                        high_color='rgba(220, 117, 58, 1)',
+                        lower_percent=0.3,
+                        high_percent=0.5);
+                    console.log(shootingInfo)
+                })
+        }
 
         function drawDynamic(court1_ctx,court1_canvas,shootingInfo,idx=0,dept=1000){
             if(idx<shootingInfo.length){
@@ -226,6 +250,9 @@
         const param1 = queryParams.get('uuid'); // 获取param1的值
         const param2=queryParams.get('court_img');
         console.log(param1,param2)
+        getData(param1);
+
+
         let court_img = "static/" + param2; // 替换为你的图像路径
         var court1_canvas = document.getElementById('shootReplay');
         var court1_ctx = court1_canvas.getContext('2d');

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, Response,send_file,jsonify,redirect,url_for
+from flask import Flask, render_template, request, Response,send_file,jsonify,redirect,url_for,json
 import base64
 import numpy as np
 import cv2
@@ -13,7 +13,7 @@ from io import BytesIO
 model = YOLO('pts/ball-rim-pose.engine')
 from collections import deque
 allDataList=dict()
-
+allShootingInfo=dict()
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编解码器
 # 在 Flask 应用初始化时创建一个固定长度的队列
 MAX_QUEUE_LENGTH = 3  # 假设队列长度为5
@@ -62,6 +62,19 @@ def dataView():
 @app.route('/afterShooting')
 def afterShooting():
     return render_template('afterShooting.html')
+
+
+@app.route('/getShootingInfo',methods=['POST'])
+def getShootingInfo():
+    uuid=request.json.get('uuid')
+    data={
+        'shootingInfo' : allShootingInfo.get(uuid, [])
+    }
+    # print(allShootingInfo)
+    print('data',data)
+    return jsonify(data)
+
+
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -138,12 +151,17 @@ def upload():
     isFromCamera=request.form.get('isFromCamera')
     uuid=request.form.get('uuid')
     fps=int(request.form.get('fps'))
+    shooting_info_data = request.form.getlist('shootingInfo')
+    allShootInfo = [json.loads(item) for item in shooting_info_data] 
+
     # print("upload",50*uuid)
     if os.path.exists('output.mp4'):
         os.remove('output.mp4')
     if uuid in allDataList:
         data=allDataList[uuid]
-        
+        print('uuid',uuid)
+        allShootingInfo[uuid]=allShootInfo
+        print('添加后',allShootingInfo)
         # Compile frames into a video
         out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
         for frame in data['all_frame']:
@@ -163,9 +181,11 @@ def upload():
         else:
             return 'No file part', 400
         del allDataList[uuid]
+        
         # os.remove('temp.mp4')
         # return send_file('output.mp4', as_attachment=True)
         # return redirect(url_for('afterShooting'))
+        # print(allShootInfo)
         return 'ok', 200
 
     else:

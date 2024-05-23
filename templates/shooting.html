@@ -451,6 +451,7 @@
         var leftFoot=undefined;
         var rightFoot=undefined;
         var playerStand=undefined;
+        let allShootInfo=[];
 
         const locatePoints=document.getElementById("locatePoints");
         const EndlocatePoints=document.getElementById("EndlocatePoints");
@@ -521,17 +522,23 @@
             }
             startButtonFile.disabled = true;
             stopButtonFile.disabled = false;
+            allShootInfo=[];
         })
         stopButtonFile.addEventListener('click',async () =>{
             clearInterval(dingshi); // 停止发送帧数据
             startButtonFile.disabled = false; // 启用开始录制按钮
             stopButtonFile.disabled = true; // 禁用停止录制按钮
             const formData = new FormData();
+            allShootInfo.forEach(item => {
+                formData.append('shootingInfo', JSON.stringify(item)); // 将每个对象序列化为JSON字符串
+            });
                 // formData.append('audio', blob, 'audio.wav');
                 formData.append('isFromCamera',false);
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
                 formData.append('fps',fps);
+                formData.append('uuid',uniqueIdentifier);
+                // formData.append('allShootInfo',allShootInfo);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -683,7 +690,8 @@
                     radus
                 );
                 }
-
+                let thisShoot={nx:copy_x,ny:copy_y,score:score};
+                allShootInfo.push(thisShoot);
                 console.log(output_point);
             }
         }
@@ -799,11 +807,15 @@
             stopButtonFile.disabled = true; // 禁用停止录制按钮
             const formData = new FormData();
                 // formData.append('audio', blob, 'audio.wav');
+                allShootInfo.forEach(item => {
+                    formData.append('shootingInfo', JSON.stringify(item)); // 将每个对象序列化为JSON字符串
+                });
                 formData.append('isFromCamera',false);
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier)
                 formData.append('fps',fps);
+                // formData.append('allShootInfo',allShootInfo);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -836,6 +848,10 @@
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier);
                 formData.append('fps',fps);
+                allShootInfo.forEach(item => {
+                    formData.append('shootingInfo', JSON.stringify(item)); // 将每个对象序列化为JSON字符串
+                });
+                // formData.append('allShootInfo',allShootInfo);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -1167,6 +1183,7 @@ function polynomialFit(x, y, degree) {
                         canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=extra_data.score_count);
                         makesSpan.innerHTML=extra_data.score_count;
                         attemptsSpan.innerHTML=extra_data.shooting_count;
+                        
                         
                     }
                     pre_ball_state=extra_data.ball_state;
