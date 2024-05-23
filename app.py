@@ -54,7 +54,10 @@ def dribbleReactPractice():
     model.predict("test.png")
     return render_template('handsReact.html')
 
-
+@app.route('/dataView')
+def dataView():
+    # model.predict("test.png")
+    return render_template('view.html')
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():

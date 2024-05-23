@@ -10,7 +10,8 @@
         .profile-header {
             background: url('../static/2index.jpg'); /* 背景图片 */
             background-size: cover;
-            padding: 20px;
+            /* padding: 20px; */
+            padding-top: 0px ;
             text-align: center;
             color: white;
             margin-bottom: 15px;
@@ -111,12 +112,29 @@
 </head>
 <body>
     <div class="container">
+
         <div class="row profile-header">
+            <nav class="navbar navbar-expand-lg bg-body-tertiary mb-2 navbar-light p-0 pt-2 pb-2" style="background-color: rgba(255,255,255,0.7);">
+                <div class="container-fluid">
+                    
+                  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon" ></span>
+                  </button>
+                  <img src="../static/5logo.png" alt="logo" class="navbar-toggler-icon" >
+                  <a class="navbar-brand ms-3" href="#">数据中心</a>
+                  <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                      <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">训练中心</a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </nav>
+
             <div class="col-md-12">
-                
                 <img src="../static/avator0.png" alt="头像" class="rounded-circle" width="100" >
                 <h1 style="color: white;">用户名</h1>
-
             </div>
         </div>
         <ul class="nav nav-tabs">
