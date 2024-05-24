@@ -67,11 +67,18 @@ def afterShooting():
 @app.route('/getShootingInfo',methods=['POST'])
 def getShootingInfo():
     uuid=request.json.get('uuid')
+    shootData=allShootingInfo.get(uuid,{
+                                        'trainStartTime':0,
+                                        'trainEndTime':0,
+                                        'Shoots':[]
+                                    })
     data={
-        'shootingInfo' : allShootingInfo.get(uuid, [])
+        'trainStartTime':shootData['trainStartTime'],
+        'trainEndTime':shootData['trainEndTime'],
+        'shootingInfo' : shootData['Shoots']
     }
     # print(allShootingInfo)
-    print('data',data)
+    # print('data',data)
     return jsonify(data)
 
 
@@ -153,24 +160,31 @@ def upload():
     fps=int(request.form.get('fps'))
     shooting_info_data = request.form.getlist('shootingInfo')
     allShootInfo = [json.loads(item) for item in shooting_info_data] 
+    trainStartTime=request.form.get('trainStartTime')
+    trainEndTime=request.form.get('trainEndTime')
+    allShootInfo={
+        'trainStartTime':trainStartTime,
+        'trainEndTime':trainEndTime,
+        'Shoots':allShootInfo
+    }
 
     # print("upload",50*uuid)
     if os.path.exists('output.mp4'):
         os.remove('output.mp4')
     if uuid in allDataList:
         data=allDataList[uuid]
-        print('uuid',uuid)
+        # print('uuid',uuid)
         allShootingInfo[uuid]=allShootInfo
-        print('添加后',allShootingInfo)
+        # print('添加后',allShootingInfo)
         # Compile frames into a video
         out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
         for frame in data['all_frame']:
             out.write(frame)
         out.release()
-        print("帧数为：",len(data['all_frame']))
+        # print("帧数为：",len(data['all_frame']))
 
         if isFromCamera=='true' and 'audio' in request.files:
-            print("aaaaa")
+            # print("aaaaa")
             audio_file = request.files['audio']
             audio_file.save('temp.wav')
             sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'temp.wav', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4'])

@@ -108,8 +108,8 @@
                 </div>
                 <div class="col">
                     <h3 id="username">用户名</h3>
-                    <p id="trainTime">May 4 at 10:53PM</p>
-                    <p><i class="bi bi-stopwatch"></i>1m0s <i class="bi bi-geo-alt"></i>未知</p>
+                    <p id="trainTime"></p>
+                    <p id="trainDuration"></p>
                 </div>
             </div>
         </div>
@@ -209,7 +209,31 @@
             // {nx:0.5,ny:0.88,score:false}
 
         ];
+        let trainStartTime;
+        let trainEndTime;
+        function formatDuration(timestamp1, timestamp2) {
+            var diff = Math.abs(timestamp2 - timestamp1); // 获取时间戳的差值，并取绝对值
+            var seconds = Math.floor(diff / 1000); // 转换为秒
+            var minutes = Math.floor(seconds / 60);
+            var hours = Math.floor(minutes / 60);
 
+            seconds %= 60;
+            minutes %= 60;
+
+            // 构建时间字符串
+            var timeString = "";
+            if (hours > 0) {
+                timeString += hours + "h";
+            }
+            if (minutes > 0) {
+                timeString += minutes + "m";
+            }
+            if (seconds > 0 || timeString === "") {
+                timeString += seconds + "s";
+            }
+
+            return timeString;
+        }
         function getData(uuid){
             fetch("/getShootingInfo", {
                 method: "POST",
@@ -222,6 +246,21 @@
                 })
                 .then((response) => response.json())
                 .then((shooting_data) => {
+                    trainStartTime=shooting_data.trainStartTime;
+                    trainEndTime=shooting_data.trainEndTime;
+                    // 假设你有一个时间戳
+                    var date = new Date(parseInt(trainStartTime));
+                    console.log(date)
+                    var month = date.toLocaleString('en-US', { month: 'long' }); // 获取月份的英文全称
+                    var day = date.getDate(); // 获取日期
+                    var time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }); // 获取时间，使用12小时制
+                    var formattedDate = `${month} ${day} at ${time}`;
+                    document.getElementById('trainTime').innerHTML=formattedDate;
+                    var duration=formatDuration(trainStartTime,trainEndTime);
+                    document.getElementById('trainDuration').innerHTML=`<i class="bi bi-stopwatch"></i>${duration} <i class="bi bi-geo-alt"></i>未知`;
+                    console.log(formattedDate); // 输出 "May 4 at 10:53 PM"
+
+                    console.log(trainStartTime,trainEndTime);
                     shootingInfo=shooting_data.shootingInfo;
                     drawCourt(canvas,ctx,shootingInfo,1000,Math.max(1,1000*(1/50)),'white',
                         null_color='rgba(180, 180, 180, 1)',
