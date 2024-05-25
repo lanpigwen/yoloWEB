@@ -279,7 +279,8 @@
         let trainStartTime;
         let trainEndTime;
         let playMode='handsReact';
-        let userID='123'
+        const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
+        console.log(userID)
 
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');

@@ -410,7 +410,8 @@
         let ct1,ct2,ct3;
         let worker = new Worker('static/worker.js');
         let uniqueIdentifier;
-        let userID='123';
+        const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
+        console.log(userID)
         let points=[];
 
         const startButton = document.getElementById('startButton');

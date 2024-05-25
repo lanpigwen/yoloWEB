@@ -101,6 +101,13 @@
         h1.text-center {
             font-size: 80px; /* 设置你想要的字体大小 */
         }
+            /* 设置模态内容的字体颜色 */
+        #loginModal .modal-content {
+            color: #333333; /* 深灰色字体 */
+        }
+        #logoutModal .modal-content {
+            color: #333333; /* 深灰色字体 */
+        }
 
     </style>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
@@ -110,6 +117,7 @@
 
   
     <div class="container">
+
         <div class="row" >
             <nav class="navbar navbar-expand-lg bg-body-tertiary mb-2 navbar-light" style="opacity: 0.9;">
                 <div class="container-fluid">
@@ -123,11 +131,16 @@
                   <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                       <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/dataView"><i class="bi bi-bar-chart-line me-1"></i>数据中心</a>
+                        <a class="nav-link active" aria-current="page" href="/dataView" id="dataCenter"><i class="bi bi-bar-chart-line me-1"></i>数据中心</a>
                       </li>
                     </ul>
                   </div>
+                    <!-- 模态触发按钮 -->
+                  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal" id="loginShow">
+                    登录
+                </button>
                 </div>
+
               </nav>
         </div>
 
@@ -137,6 +150,66 @@
                 <p class="text-center" style="font-size: 20px;">选择一个项目开始今天的练习吧</p>
             </div>
         </div>
+
+
+<!-- 模态对话框 -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+
+    <div class="modal-dialog">
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" id="loginAlert" style="display: none;">
+            请先登录。
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginModalLabel">登录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="modalClose"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="usernameModal" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="usernameModal" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="passwordModal" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="passwordModal" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMeModal">
+                        <label class="form-check-label" for="rememberMeModal">记住我</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                还没有账号？<a href="/register">注册</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 退出登录模态框 -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalLabel">退出登录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="modalCloseOut"></button>
+            </div>
+            <div class="modal-body" id="logoutBody">
+                您确定要退出登录吗？
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
         <div class="row mt-5 p-3">
             <div class="col-md-6 col-lg-3 mb-4">
                 <div class="card" >
@@ -182,6 +255,7 @@
         </div>
     </div>
 
+    
     <!-- Bootstrap 5 JS and dependencies -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
@@ -203,5 +277,123 @@
             });
         });
     </script>
+    <script>
+        let userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
+        if(userID!=undefined){
+            let button=document.getElementById('loginShow')
+            button.innerText='退出登录';
+            button.setAttribute('data-bs-target', '#logoutModal');
+            let logoutBody=document.getElementById('logoutBody');
+            logoutBody.innerText=userID+'您确定要退出登录吗？';
+        }
+
+        function logout() {
+
+            // 例如：清除本地存储、Cookie 或调用退出 API
+            sessionStorage.removeItem('userID'); // 假设使用 localStorage 存储登录令牌
+
+            var logoutClose = document.getElementById('modalCloseOut')
+            logoutClose.click();
+            let button=document.getElementById('loginShow')
+            button.innerText='登录';
+            button.setAttribute('data-bs-target', '#loginModal');
+            userID = sessionStorage.getItem('userID');
+            // 重定向到登录页面
+            // window.location.href = '/login';
+        }
+
+        function showLoginAlert(message='请先登录',the_class="alert alert-primary") {
+            var alert = document.getElementById('loginAlert');
+            alert.setAttribute('class',the_class);
+            alert.innerText=message;
+            alert.style.display = 'block';  // 显示警告框
+
+            // 设置 3 秒后自动隐藏警告框
+            setTimeout(function() {
+                alert.style.display = 'none';  // 隐藏警告框
+            }, 3000);  // 3000 毫秒后执行
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+        // document.getElementById('loginShow').click()
+                // 获取所有card-body下的a链接
+        var actionLinks = document.querySelectorAll('.card-body a');
+        // 为每个链接添加点击事件监听器
+        actionLinks.forEach(function(link) {
+            link.addEventListener('click', function(event) {
+                // 检查userID是否为undefined
+                if (userID == undefined) {
+                    // 阻止默认行为，即不跳转
+                    event.preventDefault();
+                    // alert('请先登录');
+                    showLoginAlert('请先登录'); 
+                    document.getElementById('loginShow').click();
+                }
+            });
+        });
+
+        document.getElementById('dataCenter').addEventListener('click', function(event) {
+                // 检查userID是否为undefined
+                if (userID == undefined) {
+                    // 阻止默认行为，即不跳转
+                    event.preventDefault();
+                    // alert('请先登录');
+                    showLoginAlert('请先登录'); 
+                    document.getElementById('loginShow').click();
+                }
+            });
+
+            const loginForm = document.querySelector('form');
+        
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();  // 阻止表单的默认提交行为
+        
+                // 收集用户输入的数据
+                const username = document.getElementById('usernameModal').value;
+                const password = document.getElementById('passwordModal').value;
+                const rememberMe = document.getElementById('rememberMeModal').checked;
+        
+                // 准备发送到服务器的数据
+                const formData = {
+                    username: username,
+                    password: password,
+                    rememberMe: rememberMe
+                };
+        
+                // 发送数据到服务器的 API
+                fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                    if (data.success) {
+                        // 处理成功登录，例如重定向到其他页面
+                        // window.location.href = '/dashboard';
+                        userID=username;
+                        sessionStorage.setItem('userID', userID);  // 使用 Session Storage
+                        // alert('登录成功：' + data.message);
+                        showLoginAlert('登录成功：' + data.message,"alert alert-success"); 
+                        var loginClose = document.getElementById('modalClose')
+                        loginClose.click();
+                        let button=document.getElementById('loginShow')
+                        button.innerText='退出登录';
+                        button.setAttribute('data-bs-target', '#logoutModal');
+                    } else {
+                        // 处理错误，显示错误消息等
+                        showLoginAlert('登录失败：' + data.message,"alert alert-danger");
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+        </script>
+        
 </body>
 </html>

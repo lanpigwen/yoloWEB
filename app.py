@@ -39,6 +39,34 @@ def index():
     # model.predict("test.png")
     return render_template('index.html')
 
+@app.route('/login',methods=['POST'])
+def login():
+
+    data = request.get_json()
+    
+    # 提取 username 和 password
+    username = data.get('username')
+    password = data.get('password')
+    remember_me = data.get('rememberMe', False)  # 默认值为 False
+
+    key=f'user:{username}'
+    
+    val_pasw=r.get(key)
+    response={
+        'success':True,
+        'message':"登陆成功"
+    }
+    if val_pasw is None:
+        response['success']=False
+        response['message']="账号不存在"
+    else:
+        val_pasw=val_pasw.decode('utf-8')
+        if val_pasw!=password:
+            response['success']=False
+            response['message']="密码错误"
+
+    return jsonify(response)
+
 @app.route('/shootingPractice')
 def shootingPractice():
     model.predict("test.png")

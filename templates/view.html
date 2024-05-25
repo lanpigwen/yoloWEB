@@ -132,7 +132,7 @@
 
             <div class="col-md-12">
                 <img src="../static/avator0.png" alt="头像" class="rounded-circle" width="100" >
-                <h1 style="color: white;">用户名</h1>
+                <h1 style="color: white;" id="nickName">用户名</h1>
             </div>
         </div>
         <ul class="nav nav-tabs">
@@ -455,7 +455,8 @@
         }
 
         const queryParams = new URLSearchParams(window.location.search);
-        const userID = queryParams.get('userID');
+        const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
+        document.getElementById('nickName').innerText=userID;
         var userData=[]
 
         fetch("/getAllShootingInfo", {
@@ -464,10 +465,7 @@
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ 
-                    userID:'123',
-                    start : "2023-05-10",
-                    end : "2024-05-25",
-                    count:3500
+                    userID:userID,
                 }),
                 })
                 .then((response) => response.json())
