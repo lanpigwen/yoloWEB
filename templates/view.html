@@ -156,7 +156,7 @@
         <div class="row chart-container">
             <div class="col-md-6">
                 <div class="chart" id="svgChart" >
-                    <h2>折线图</h2>
+                    <h2>投篮折线图</h2>
                     <svg id="LineSvg" ></svg>
                     <!-- 在这里插入你的折线图代码 -->
                 </div>
@@ -186,12 +186,152 @@
                 </div>
             </div>
         </div>
+        <div class="row chart-container mt-5">
+            <div class="col-md-6">
+                <div class="chart" >
+                    <h2>运球总次数</h2>
+                    <div class="courtDiv">
+                        <canvas id="all"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>高运球</h2>
+                    <div class="courtDiv">
+                        <canvas id="high"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>低运球</h2>
+                    <div class="courtDiv">
+                        <canvas id="low"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mt-4">
+                <div class="chart">
+                    <h2>左手运球</h2>
+                    <div class="courtDiv">
+                        <canvas id="left"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-md-3 mt-4">
+                <div class="chart">
+                    <h2>右手运球</h2>
+                    <div class="courtDiv">
+                        <canvas id="right"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-md-3 mt-4">
+                <div class="chart">
+                    <h2>交叉运球</h2>
+                    <div class="courtDiv">
+                        <canvas id="crossover"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="row chart-container mt-5">
+            <div class="col-md-6">
+                <div class="chart" >
+                    <h2>运球锻炼得分</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_score"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>干扰块数</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_circle"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>完成动作数</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_combine"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="row chart-container mt-5">
+            <div class="col-md-6">
+                <div class="chart" >
+                    <h2>训练得分</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_score_react"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>干扰块数</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_circle_react"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>迅速反应</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_fast_react"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 
     <script>
+        function putText(canvas,text,font='60px Arial',fillStyle='black',strokeStyle='black'){
+            if (canvas.getContext) {
+            // 获取2D渲染上下文
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            // 设置文本对齐方式
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 设置文本样式
+            ctx.font = font;
+            ctx.fillStyle = fillStyle; // 文本颜色
+            ctx.strokeStyle = strokeStyle; // 轮廓颜色，用于文本描边
+            
+            // 获取canvas尺寸
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // 计算文本绘制的中心位置
+            const metrics = ctx.measureText(text);
+            const textWidth = metrics.width;
+            
+            // 设置文本的x和y坐标
+            const x = (width - textWidth) / 2 + textWidth / 2;
+            const y = height / 2;
+            
+            // 绘制文本（带描边）
+            ctx.strokeText(text, x, y);
+            ctx.fillText(text, x, y);
+        }
+        }
 
         //动态调整其svg大小
         function setSvgSize(data) {
@@ -224,16 +364,16 @@
                 };
             };
 
-            const randomUserData = () => ({
+            const randomuserShootData = () => ({
                 trainStartTime: randomTime().trainStartTime,
                 trainEndTime: randomTime().trainEndTime,
                 Shoots: Array.from({ length: Math.floor(Math.random() * 30) + 1 }, randomShoot)
             });
 
-            return Array.from({ length: count }, randomUserData);
+            return Array.from({ length: count }, randomuserShootData);
         }
 
-        function filterData(startDate, endDate, userData) {
+        function filterData(startDate, endDate, userShootData) {
             // 将日期转换为时间戳
             startDate.setHours(0,0,0);
             endDate.setHours(23,59,59);
@@ -242,18 +382,18 @@
             const endTimeStamp = endDate.getTime();
 
             // 使用filter方法筛选数据
-            return userData.filter(user => {
+            return userShootData.filter(user => {
                 const trainStartTime = user.trainStartTime; // 获取trainStartTime时间戳
                 return trainStartTime >= startTimeStamp && trainStartTime <= endTimeStamp;
             });
         }
 
-        function DataFormat2Line(userData) {
+        function DataFormat2Line(userShootData) {
             const summary = []; // 用于存储最终的统计结果
             const dayData = new Map(); // 使用Map来存储每天的统计数据
 
-            // 遍历userData数组，统计每天的hits和misses
-            userData.forEach(user => {
+            // 遍历userShootData数组，统计每天的hits和misses
+            userShootData.forEach(user => {
                 // 将时间戳转换为Date对象
                 const date = new Date(user.trainStartTime);
                 // 获取日期的表示形式，例如 "2024-05-10"
@@ -299,12 +439,12 @@
             return nextMonth;
         }
 
-        function summarizeByMonth(userData) {
+        function summarizeByMonth(userShootData) {
             // 创建一个对象来存储每个月的统计数据
             const monthlySummary = {};
 
-            // 遍历userData数组，统计每个月的hits和misses
-            userData.forEach(user => {
+            // 遍历userShootData数组，统计每个月的hits和misses
+            userShootData.forEach(user => {
                 const month = new Date(user.trainStartTime).getMonth() + 1; // 获取月份，+1因为getMonth()返回的月份是从0开始的
                 const year = new Date(user.trainStartTime).getFullYear(); // 获取年份
 
@@ -345,25 +485,25 @@
             return summaryArray;
         }
 
-        function extractShootsList(userData) {
+        function extractShootsList(userShootData) {
             // 创建一个新的空数组用于存储所有Shoots
             let allShoots = [];
 
-            // 遍历userData数组，将每个用户的Shoots添加到allShoots数组中
-            userData.forEach(user => {
+            // 遍历userShootData数组，将每个用户的Shoots添加到allShoots数组中
+            userShootData.forEach(user => {
                 allShoots = allShoots.concat(user.Shoots);
             });
 
             // 或者使用展开运算符
-            // userData.forEach(user => {
+            // userShootData.forEach(user => {
             //   allShoots.push(...user.Shoots);
             // });
 
             return allShoots;
         }
 
-        function extractData(startDate, endDate, userData,mode=0){
-            let data1=filterData(startDate, endDate, userData);
+        function extractData(startDate, endDate, userShootData,mode=0){
+            let data1=filterData(startDate, endDate, userShootData);
             let data2=DataFormat2Line(data1);
             if(mode==0){
                 //week
@@ -432,9 +572,9 @@
             }
         }
 
-        function updateTwoGraph(Date1,Date2,userData,mode=0){
-            let result_data=extractData(Date1,Date2,userData,mode)
-            let shootingInfo=extractData(Date1,Date2,userData,3);
+        function updateTwoGraph(Date1,Date2,userShootData,mode=0){
+            let result_data=extractData(Date1,Date2,userShootData,mode)
+            let shootingInfo=extractData(Date1,Date2,userShootData,3);
 
             var canvas = document.getElementById('myCanvas');
             var ctx = canvas.getContext('2d');
@@ -454,13 +594,121 @@
             });
         }
 
+        function updateDribbleGraph(Date1,Date2,userDribbleData){
+            let data1=filterData(Date1,Date2,userDribbleData);
+            result_data={
+                all_score:0,
+                all_circle:0,
+                all_combine:0
+            }
+            for(let d of data1){
+                result_data.all_score+=d.Dribbles.all_score;
+                result_data.all_circle+=d.Dribbles.all_circle;
+                result_data.all_combine+=d.Dribbles.all_combine;
+            }
+            let DribbleInfo=result_data;
+
+            let all_score,all_circle,all_combine;
+            all_score=DribbleInfo.all_score;
+            all_circle=DribbleInfo.all_circle;
+            all_combine=DribbleInfo.all_combine;
+
+            var canvas_all = document.getElementById('all_score');
+            var canvas_high = document.getElementById('all_circle');
+            var canvas_low = document.getElementById('all_combine');
+
+            putText(canvas_all,all_score)
+            putText(canvas_high,all_circle)
+            putText(canvas_low,all_combine)
+        }
+
+        function updateReactGraph(Date1,Date2,userReactData){
+            let data1=filterData(Date1,Date2,userReactData);
+            result_data={
+                all_score:0,
+                all_circle:0,
+                all_fast:0
+            }
+            for(let d of data1){
+                result_data.all_score+=d.Reacts.all_score;
+                result_data.all_circle+=d.Reacts.all_circle;
+                result_data.all_fast+=d.Reacts.all_fast;
+            }
+            let ReactInfo=result_data;
+
+            let all_score,all_circle,all_fast;
+            all_score=ReactInfo.all_score;
+            all_circle=ReactInfo.all_circle;
+            all_fast=ReactInfo.all_fast;
+
+            var canvas_all = document.getElementById('all_score_react');
+            var canvas_high = document.getElementById('all_circle_react');
+            var canvas_low = document.getElementById('all_fast_react');
+
+            putText(canvas_all,all_score)
+            putText(canvas_high,all_circle)
+            putText(canvas_low,all_fast)
+        }
+
+        function updateCounterGraph(Date1,Date2,userCounterData){
+            let data1=filterData(Date1,Date2,userCounterData);
+            result_data={
+                all_dribble_count:0,
+                crossover_dribble_count:0,
+                high_dribble_count:0,
+                left_dribble_count:0,
+                low_dribble_count:0,
+                right_dribble_count:0
+            }
+            for(let d of data1){
+                result_data.all_dribble_count+=d.Counters.all_dribble_count;
+                result_data.crossover_dribble_count+=d.Counters.crossover_dribble_count;
+                result_data.high_dribble_count+=d.Counters.high_dribble_count;
+                result_data.left_dribble_count+=d.Counters.left_dribble_count;
+                result_data.low_dribble_count+=d.Counters.low_dribble_count;
+                result_data.right_dribble_count+=d.Counters.right_dribble_count;
+            }
+            let CounterInfo=result_data;
+
+            let all,high,low,left,right,crossover;
+            all=CounterInfo.all_dribble_count;
+            high=CounterInfo.high_dribble_count;
+            low=CounterInfo.low_dribble_count;
+            left=CounterInfo.left_dribble_count;
+            right=CounterInfo.right_dribble_count;
+            crossover=CounterInfo.crossover_dribble_count;
+
+            var canvas_all = document.getElementById('all');
+            var canvas_high = document.getElementById('high');
+            var canvas_low = document.getElementById('low');
+            var canvas_left = document.getElementById('left');
+            var canvas_right = document.getElementById('right');
+            var canvas_crossover = document.getElementById('crossover');
+
+            putText(canvas_all,all)
+            putText(canvas_high,high)
+            putText(canvas_low,low)
+            putText(canvas_left,left)
+            putText(canvas_right,right)
+            putText(canvas_crossover,crossover)
+        }
+
         const queryParams = new URLSearchParams(window.location.search);
         const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
         let userName = sessionStorage.getItem('userName');
         document.getElementById('nickName').innerText=userName;
-        var userData=[]
+        var userShootData=[];
+        var userDribbleData=[];
+        var userCounterData=[];
+        var userReactData=[];
 
-        fetch("/getAllShootingInfo", {
+        let sessionData=sessionStorage.getItem('userShootData');
+        if (sessionData){
+            userShootData=JSON.parse(sessionData);
+            console.log("内存userShootData",userShootData);
+        }
+        else{
+            fetch("/getAllShootingInfo", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -471,10 +719,109 @@
                 })
                 .then((response) => response.json())
                 .then((shooting_data) => {
-                    userData=shooting_data;
+                    userShootData=shooting_data;
+                    //会超额Failed to execute 'setItem' on 'Storage': Setting the value of 'userShootData' exceeded the quota.
+                    try{
+                        sessionStorage.setItem('userShootData',JSON.stringify(userShootData));
+                    }
+                    catch(e){
+                        console.log(e);
+                    }
                     updateWeekDisplay();
                 })
+        }
 
+
+        let sessionDribbleData=sessionStorage.getItem('userDribbleData');
+        if (sessionDribbleData){
+            userDribbleData=JSON.parse(sessionDribbleData);
+            console.log("内存userDribbleData",userDribbleData);
+        }
+        else{
+            fetch("/getAllDribbleInfo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    userID:userID,
+                }),
+                })
+                .then((response) => response.json())
+                .then((dribbl_data) => {
+                    userDribbleData=dribbl_data;
+                    console.log("后端给的userDribbleData",userDribbleData);
+                    //会超额Failed to execute 'setItem' on 'Storage': Setting the value of 'userShootData' exceeded the quota.
+                    try{
+                        sessionStorage.setItem('userDribbleData',JSON.stringify(userDribbleData));
+                    }
+                    catch(e){
+                        console.log(e);
+                    }
+                    //update week
+                })  
+        }
+
+        let sessionReactData=sessionStorage.getItem('userReactData');
+        if (sessionReactData){
+            userReactData=JSON.parse(sessionReactData);
+            console.log("内存userReactData",userReactData);
+        }
+        else{
+            fetch("/getAllReactInfo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    userID:userID,
+                }),
+                })
+                .then((response) => response.json())
+                .then((react_data) => {
+                    userReactData=react_data;
+                    console.log("后端给的userReactData",userReactData);
+                    //会超额Failed to execute 'setItem' on 'Storage': Setting the value of 'userShootData' exceeded the quota.
+                    try{
+                        sessionStorage.setItem('userReactData',JSON.stringify(userReactData));
+                    }
+                    catch(e){
+                        console.log(e);
+                    }
+                    //update week
+                })  
+        }
+        
+        let sessionCounterData=sessionStorage.getItem('userCounterData');
+        if (sessionCounterData){
+            userCounterData=JSON.parse(sessionCounterData);
+            console.log("内存userCounterData",userCounterData);
+        }
+        else{
+            fetch("/getAllCounterInfo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    userID:userID,
+                }),
+                })
+                .then((response) => response.json())
+                .then((counter_data) => {
+                    userCounterData=counter_data;
+                    console.log("后端给的userCounterData",userCounterData);
+                    //会超额Failed to execute 'setItem' on 'Storage': Setting the value of 'userShootData' exceeded the quota.
+                    try{
+                        sessionStorage.setItem('userCounterData',JSON.stringify(userCounterData));
+                    }
+                    catch(e){
+                        console.log(e);
+                    }
+                    //update week
+                })  
+        }
+        
     </script>
     <script>
         const dateDisplay = document.getElementById('date-display');
@@ -485,16 +832,29 @@
         const nextYearButton = document.getElementById('next-year');
     
         let currentDate = new Date();  // 设置初始日期为2024年4月
-
+        currentDate.setHours(0,0,0);
         function updateWeekDisplay() {
             let startOfWeek = new Date(currentDate);
-            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1);  // 设置为本周一
+            let dayToMonday=0;
+            if(currentDate.getDay()==0){
+                dayToMonday=6;
+            }
+            else{
+                dayToMonday=currentDate.getDay()-1;
+            }
+            startOfWeek.setDate(currentDate.getDate() - dayToMonday);  // 设置为本周一
             let endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(startOfWeek.getDate() + 6);  // 设置为本周日
+
+            console.log("今天",currentDate,"今天星期",currentDate.getDay(),"这周一",startOfWeek)
     
             const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
             dateDisplay.textContent = `${dateFormatter.format(startOfWeek)} - ${dateFormatter.format(endOfWeek)}`;
-            updateTwoGraph(startOfWeek,endOfWeek,userData,0);
+            updateTwoGraph(startOfWeek,endOfWeek,userShootData,0);
+            updateDribbleGraph(startOfWeek,endOfWeek,userDribbleData);
+            updateReactGraph(startOfWeek,endOfWeek,userReactData);
+            updateCounterGraph(startOfWeek,endOfWeek,userCounterData);
+
 
         }
 
@@ -514,7 +874,10 @@
             }
 
             let {firstDayOfMonth,lastDayOfMonth}=getFirstAndLastDayOfMonth(currentDate);
-            updateTwoGraph(firstDayOfMonth,lastDayOfMonth,userData,1);
+            updateTwoGraph(firstDayOfMonth,lastDayOfMonth,userShootData,1);
+            updateDribbleGraph(firstDayOfMonth,lastDayOfMonth,userDribbleData);
+            updateReactGraph(firstDayOfMonth,lastDayOfMonth,userReactData);
+            updateCounterGraph(firstDayOfMonth,lastDayOfMonth,userCounterData);
 
         }
 
@@ -530,7 +893,10 @@
                 return { firstDayOfYear, lastDayOfYear };
             }
             const { firstDayOfYear, lastDayOfYear } = getFirstAndLastDayOfYear(currentDate);
-            updateTwoGraph(firstDayOfYear,lastDayOfYear,userData,2);
+            updateTwoGraph(firstDayOfYear,lastDayOfYear,userShootData,2);
+            updateDribbleGraph(firstDayOfYear,lastDayOfYear,userDribbleData);
+            updateReactGraph(firstDayOfYear,lastDayOfYear,userReactData);
+            updateCounterGraph(firstDayOfYear,lastDayOfYear,userCounterData);
         }
         
         document.addEventListener('DOMContentLoaded', () => {

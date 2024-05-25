@@ -170,21 +170,6 @@ def getShootingInfo():
 
     return jsonify(data)
 
-
-@app.route('/getAllShootingInfo',methods=['POST'])
-def getAllShootingInfo():
-    userID=request.json.get('userID')
-
-    # 从Redis获取JSON字符串
-    keys_pattern = f'Shoots:{userID}*'
-    matching_keys = r.keys(keys_pattern)
-    userShootingData=[]
-    # 遍历匹配的键，并获取它们的值
-    for key in matching_keys:
-        value = r.get(key)
-        userShootingData.append(json.loads(value))
-    return jsonify(userShootingData)
-
 @app.route('/getCounterInfo',methods=['POST'])
 def getCounterInfo():
     user=request.json.get('userID')
@@ -235,6 +220,62 @@ def getReactInfo():
         'Reacts' : shootData['Reacts']
     }
     return jsonify(data)
+
+@app.route('/getAllShootingInfo',methods=['POST'])
+def getAllShootingInfo():
+    userID=request.json.get('userID')
+
+    # 从Redis获取JSON字符串
+    keys_pattern = f'Shoots:{userID}*'
+    matching_keys = r.keys(keys_pattern)
+    userShootingData=[]
+    # 遍历匹配的键，并获取它们的值
+    for key in matching_keys:
+        value = r.get(key)
+        userShootingData.append(json.loads(value))
+    return jsonify(userShootingData)
+
+@app.route('/getAllCounterInfo',methods=['POST'])
+def getAllCounterInfo():
+    userID=request.json.get('userID')
+
+    # 从Redis获取JSON字符串
+    keys_pattern = f'Counters:{userID}*'
+    matching_keys = r.keys(keys_pattern)
+    userCounterData=[]
+    # 遍历匹配的键，并获取它们的值
+    for key in matching_keys:
+        value = r.get(key)
+        userCounterData.append(json.loads(value))
+    return jsonify(userCounterData)
+
+@app.route('/getAllDribbleInfo',methods=['POST'])
+def getAllDribbleInfo():
+    userID=request.json.get('userID')
+
+    # 从Redis获取JSON字符串
+    keys_pattern = f'Dribbles:{userID}*'
+    matching_keys = r.keys(keys_pattern)
+    userDribbleData=[]
+    # 遍历匹配的键，并获取它们的值
+    for key in matching_keys:
+        value = r.get(key)
+        userDribbleData.append(json.loads(value))
+    return jsonify(userDribbleData)
+
+@app.route('/getAllReactInfo',methods=['POST'])
+def getAllReactInfo():
+    userID=request.json.get('userID')
+
+    # 从Redis获取JSON字符串
+    keys_pattern = f'Reacts:{userID}*'
+    matching_keys = r.keys(keys_pattern)
+    userReactsData=[]
+    # 遍历匹配的键，并获取它们的值
+    for key in matching_keys:
+        value = r.get(key)
+        userReactsData.append(json.loads(value))
+    return jsonify(userReactsData)
 
 
 @app.route('/process_frame', methods=['POST'])
