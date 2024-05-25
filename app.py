@@ -178,15 +178,17 @@ def upload():
     uuid=request.form.get('uuid')
     user = request.form.get('userID')
     fps=int(request.form.get('fps'))
-    shooting_info_data = request.form.getlist('shootingInfo')
-    allShootInfo = [json.loads(item) for item in shooting_info_data] 
     trainStartTime=int(request.form.get('trainStartTime'))
     trainEndTime=int(request.form.get('trainEndTime'))
-    allShootInfo={
-        'trainStartTime':trainStartTime,
-        'trainEndTime':trainEndTime,
-        'Shoots':allShootInfo
-    }
+    playMode=request.form.get('playMode')
+    if playMode=='shooting':
+        shooting_info_data = request.form.getlist('shootingInfo')
+        allShootInfo = [json.loads(item) for item in shooting_info_data] 
+        allShootInfo={
+            'trainStartTime':trainStartTime,
+            'trainEndTime':trainEndTime,
+            'Shoots':allShootInfo
+        }
 
     # print("upload",50*uuid)
     if os.path.exists('output.mp4'):
@@ -194,13 +196,12 @@ def upload():
     if uuid in allDataList:
         data=allDataList[uuid]
 
-        # 改为写入数据库的操作 userID,uuid
         # 构造Redis的key
-        
-        key = f"Shoots:{user}:{uuid}"
-        # 将字典d序列化为JSON字符串
-        d_json = json.dumps(allShootInfo)
-        r.set(key, d_json)
+        if playMode=='shooting':
+            key = f"Shoots:{user}:{uuid}"
+            # 将字典d序列化为JSON字符串
+            d_json = json.dumps(allShootInfo)
+            r.set(key, d_json)
 
         
         out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))

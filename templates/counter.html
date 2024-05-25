@@ -335,6 +335,10 @@
         let worker = new Worker('static/worker.js');
         let uniqueIdentifier;
         let points=[];
+        let trainStartTime;
+        let trainEndTime;
+        let playMode='counter';
+        let userID='123'
 
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
@@ -434,6 +438,7 @@
             }
             startButtonFile.disabled = true;
             stopButtonFile.disabled = false;
+            trainStartTime=Date.now();
         })
         stopButtonFile.addEventListener('click',async () =>{
             clearInterval(dingshi); // 停止发送帧数据
@@ -445,6 +450,12 @@
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
                 formData.append('fps',fps);
+                formData.append('uuid',uniqueIdentifier);
+                formData.append('userID',userID);
+                trainEndTime=Date.now();
+                formData.append('trainStartTime',trainStartTime);
+                formData.append('trainEndTime',trainEndTime);
+                formData.append('playMode',playMode);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -639,6 +650,11 @@
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier)
                 formData.append('fps',fps);
+                formData.append('userID',userID);
+                trainEndTime=Date.now();
+                formData.append('trainStartTime',trainStartTime);
+                formData.append('trainEndTime',trainEndTime);
+                formData.append('playMode',playMode);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -666,6 +682,11 @@
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier);
                 formData.append('fps',fps);
+                formData.append('userID',userID);
+                trainEndTime=Date.now();
+                formData.append('trainStartTime',trainStartTime);
+                formData.append('trainEndTime',trainEndTime);
+                formData.append('playMode',playMode);
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData

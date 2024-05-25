@@ -455,6 +455,7 @@
         let allShootInfo=[];
         let trainStartTime;
         let trainEndTime;
+        let playMode='shooting';
 
         const locatePoints=document.getElementById("locatePoints");
         const EndlocatePoints=document.getElementById("EndlocatePoints");
@@ -529,9 +530,6 @@
             trainStartTime=Date.now();
         })
         stopButtonFile.addEventListener('click',async () =>{
-            // trainEndTime=Date.now();
-            // console.assert(trainStartTime,trainEndTime)
-            // console.log(trainStartTime,trainEndTime);
             clearInterval(dingshi); // 停止发送帧数据
             startButtonFile.disabled = false; // 启用开始录制按钮
             stopButtonFile.disabled = true; // 禁用停止录制按钮
@@ -549,7 +547,7 @@
             trainEndTime=Date.now();
             formData.append('trainStartTime',trainStartTime);
             formData.append('trainEndTime',trainEndTime);
-            // formData.append('allShootInfo',allShootInfo);
+            formData.append('playMode',playMode);
             await fetch('/upload', {
                 method: 'POST',
                 body: formData
@@ -831,6 +829,7 @@
                 trainEndTime=Date.now();
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
+                formData.append('playMode',playMode);
                 // formData.append('allShootInfo',allShootInfo);
                 await fetch('/upload', {
                     method: 'POST',
@@ -868,6 +867,7 @@
                 trainEndTime=Date.now();
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
+                formData.append('playMode',playMode);
                 allShootInfo.forEach(item => {
                     formData.append('shootingInfo', JSON.stringify(item)); // 将每个对象序列化为JSON字符串
                 });
