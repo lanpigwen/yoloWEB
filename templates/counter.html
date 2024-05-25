@@ -341,7 +341,9 @@
         const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
         let userName = sessionStorage.getItem('userName');
         console.log(userID,userName)
-
+        let all_dribble_count,high_dribble_count,low_dribble_count,left_dribble_count,right_dribble_count,crossover_dribble_count;
+        all_dribble_count=0;high_dribble_count=0;low_dribble_count=0;left_dribble_count=0;right_dribble_count=0;crossover_dribble_count=0;
+        
         const startButton = document.getElementById('startButton');
         const stopButton = document.getElementById('stopButton');
         const startButtonFile = document.getElementById('startButtonFile');
@@ -441,11 +443,13 @@
             startButtonFile.disabled = true;
             stopButtonFile.disabled = false;
             trainStartTime=Date.now();
+            all_dribble_count=0;high_dribble_count=0;low_dribble_count=0;left_dribble_count=0;right_dribble_count=0;crossover_dribble_count=0;
         })
         stopButtonFile.addEventListener('click',async () =>{
             clearInterval(dingshi); // 停止发送帧数据
             startButtonFile.disabled = false; // 启用开始录制按钮
             stopButtonFile.disabled = true; // 禁用停止录制按钮
+
             const formData = new FormData();
                 // formData.append('audio', blob, 'audio.wav');
                 formData.append('isFromCamera',false);
@@ -458,9 +462,23 @@
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
                 formData.append('playMode',playMode);
+                CounterInfo={
+                    'all_dribble_count':all_dribble_count,
+                    'high_dribble_count':high_dribble_count,
+                    'low_dribble_count':low_dribble_count,
+                    'left_dribble_count':left_dribble_count,
+                    'right_dribble_count':right_dribble_count,
+                    'crossover_dribble_count':crossover_dribble_count
+                }
+                formData.append('CounterInfo',JSON.stringify(CounterInfo));
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
+                }).then(response => {
+                    window.location.href='/afterCounter'+'?uuid='+uniqueIdentifier;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
                 video.pause();
                 console.log(frameCount);
@@ -657,9 +675,23 @@
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
                 formData.append('playMode',playMode);
+                CounterInfo={
+                    'all_dribble_count':all_dribble_count,
+                    'high_dribble_count':high_dribble_count,
+                    'low_dribble_count':low_dribble_count,
+                    'left_dribble_count':left_dribble_count,
+                    'right_dribble_count':right_dribble_count,
+                    'crossover_dribble_count':crossover_dribble_count
+                }
+                formData.append('CounterInfo',JSON.stringify(CounterInfo));
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
+                }).then(response => {
+                    window.location.href='/afterCounter'+'?uuid='+uniqueIdentifier;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
                 console.log(points_and_time);
         });
@@ -689,9 +721,23 @@
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
                 formData.append('playMode',playMode);
+                CounterInfo={
+                    'all_dribble_count':all_dribble_count,
+                    'high_dribble_count':high_dribble_count,
+                    'low_dribble_count':low_dribble_count,
+                    'left_dribble_count':left_dribble_count,
+                    'right_dribble_count':right_dribble_count,
+                    'crossover_dribble_count':crossover_dribble_count
+                }
+                formData.append('CounterInfo',JSON.stringify(CounterInfo));
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
+                }).then(response => {
+                    window.location.href='/afterCounter'+'?uuid='+uniqueIdentifier;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
                 //一定要清空！！！
                 audioChunks=[];
@@ -851,28 +897,33 @@
                     if (dribleFallBall.y<knee.y){
                         console.log("高运球");
                         nowDoingLowHigh=0;
+                        high_dribble_count++;
                     }
                     else{
                         console.log("低运球");
                         nowDoingLowHigh=1;
+                        low_dribble_count++;
                     }
                     if(dis_0_left<dis_0_right && dis_2_left<dis_2_right){
                         nowDoing=1;
                         console.log("右手运球");
+                        right_dribble_count++;
                     }
                     else if(dis_0_left>dis_0_right && dis_2_left>dis_2_right){
                         nowDoing=0;
                         console.log("左手运球");
+                        left_dribble_count++;
                     }
                     else{
                         nowDoing=2;
                         console.log("交叉运球");
+                        crossover_dribble_count++;
                     }
                     // if(nowDoing==taskID){
                     if(nowDoing==taskID && (taskID==2 || nowDoingLowHigh==LowHighId)){
-                        updateScore();
-                        
+                        updateScore(); 
                     }
+                    all_dribble_count++;
 
 
 

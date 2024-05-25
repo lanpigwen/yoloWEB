@@ -139,6 +139,18 @@ def dataView():
 def afterShooting():
     return render_template('afterShooting.html')
 
+@app.route('/afterCounter')
+def afterCounter():
+    return render_template('afterCounter.html')
+
+@app.route('/afterDribble')
+def afterDribble():
+    return render_template('afterDribble.html')
+
+@app.route('/afterReact')
+def afterReact():
+    return render_template('afterReact.html')
+
 
 @app.route('/getShootingInfo',methods=['POST'])
 def getShootingInfo():
@@ -172,6 +184,58 @@ def getAllShootingInfo():
         value = r.get(key)
         userShootingData.append(json.loads(value))
     return jsonify(userShootingData)
+
+@app.route('/getCounterInfo',methods=['POST'])
+def getCounterInfo():
+    user=request.json.get('userID')
+    uuid=request.json.get('uuid')
+    key=f'Counters:{user}:{uuid}'
+    shootData = json.loads(r.get(key)) or {
+        'trainStartTime': 0,
+        'trainEndTime': 0,
+        'Counters': []
+    }
+    data={
+        'trainStartTime':shootData['trainStartTime'],
+        'trainEndTime':shootData['trainEndTime'],
+        'Counters' : shootData['Counters']
+    }
+    return jsonify(data)
+
+@app.route('/getDribbleInfo',methods=['POST'])
+def getDribbleInfo():
+    user=request.json.get('userID')
+    uuid=request.json.get('uuid')
+    key=f'Dribbles:{user}:{uuid}'
+    shootData = json.loads(r.get(key)) or {
+        'trainStartTime': 0,
+        'trainEndTime': 0,
+        'Dribbles': []
+    }
+    data={
+        'trainStartTime':shootData['trainStartTime'],
+        'trainEndTime':shootData['trainEndTime'],
+        'Dribbles' : shootData['Dribbles']
+    }
+    return jsonify(data)
+
+@app.route('/getReactInfo',methods=['POST'])
+def getReactInfo():
+    user=request.json.get('userID')
+    uuid=request.json.get('uuid')
+    key=f'Reacts:{user}:{uuid}'
+    shootData = json.loads(r.get(key)) or {
+        'trainStartTime': 0,
+        'trainEndTime': 0,
+        'Reacts': []
+    }
+    data={
+        'trainStartTime':shootData['trainStartTime'],
+        'trainEndTime':shootData['trainEndTime'],
+        'Reacts' : shootData['Reacts']
+    }
+    return jsonify(data)
+
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -260,6 +324,30 @@ def upload():
             'trainEndTime':trainEndTime,
             'Shoots':allShootInfo
         }
+    elif playMode=='counter':
+        couterInfo=json.loads(request.form.get('CounterInfo'))
+        couterInfo={
+            'trainStartTime':trainStartTime,
+            'trainEndTime':trainEndTime,
+            'Counters':couterInfo
+            }
+        print(couterInfo)
+    elif playMode=='dribble':
+        DribbleInfo=json.loads(request.form.get('DribbleInfo'))
+        DribbleInfo={
+            'trainStartTime':trainStartTime,
+            'trainEndTime':trainEndTime,
+            'Dribbles':DribbleInfo
+            }
+        print(DribbleInfo)
+    elif playMode=='react':
+        ReactInfo=json.loads(request.form.get('ReactInfo'))
+        ReactInfo={
+            'trainStartTime':trainStartTime,
+            'trainEndTime':trainEndTime,
+            'Reacts':ReactInfo
+            }
+        print(ReactInfo)
 
     # print("upload",50*uuid)
     if os.path.exists('output.mp4'):
@@ -273,7 +361,18 @@ def upload():
             # 将字典d序列化为JSON字符串
             d_json = json.dumps(allShootInfo)
             r.set(key, d_json)
-
+        elif playMode=='counter':
+            key=f'Counters:{user}:{uuid}'
+            d_json=json.dumps(couterInfo)
+            r.set(key, d_json)
+        elif playMode=='dribble':
+            key=f'Dribbles:{user}:{uuid}'
+            d_json=json.dumps(DribbleInfo)
+            r.set(key, d_json)
+        elif playMode=='react':
+            key=f'Reacts:{user}:{uuid}'
+            d_json=json.dumps(ReactInfo)
+            r.set(key, d_json)
         
         out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
         for frame in data['all_frame']:

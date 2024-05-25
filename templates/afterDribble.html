@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据可视化展示</title>
+    <link rel="icon" href="static/5logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .profile-header {
+            /* background: url('../static/2index.jpg'); */
+            background-size: cover;
+            /* padding: 20px; */
+            padding-top: 0px ;
+            text-align: center;
+            color: white;
+            margin-bottom: 15px;
+        }
+        .chart-container {
+            margin-top: 10px;
+        }
+        .chart {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 10px;
+        }
+
+        .make {
+            stroke: #f55602;
+        }
+
+        .miss {
+            stroke: #5b74a6;
+        }
+    </style>
+    <style>
+        #legend {
+            display: flex;
+            /* justify-content: center; */
+            flex-wrap: wrap; /* 确保图例项可以根据需要换行 */
+            margin-top: 0px;
+            margin-left: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px; /* 间隔 */
+        }
+        .legend-color {
+            width: 20px; /* 颜色块的宽度 */
+            height: 20px; /* 颜色块的高度 */
+            margin-right: 5px; /* 颜色块和文字的间隔 */
+        }
+        .lower { background-color: rgba(89, 164, 222, 1); }
+        .average { background-color: rgba(247, 214, 73, 1); }
+        .high { background-color: rgba(220, 117, 58, 1); }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+        }
+
+        .courtDiv {
+            width: 100%;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .courtDiv canvas{
+            width: 100%;
+            /* height: 100%; */
+            margin-top: 10px;
+            margin-bottom: 5px; 
+        }
+    </style>
+    <script src="../static/script.js"></script>
+    <script src="../static/court.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand mb-0 h1" href="/"><i class="bi bi-chevron-left"></i>返回</a>
+                <span class="navbar-text mx-auto h1">训练结束</span>
+            </div>
+        </nav>
+        <div class="container mt-3">
+            <div class="row align-items-center">
+                <div class="col-1" style="min-width: 100px;">
+                    <img src="../static/avator0.png" class="rounded-circle" alt="User Avatar" width="100%">
+                </div>
+                <div class="col">
+                    <h3 id="nickName">用户名</h3>
+                    <p id="trainTime"></p>
+                    <p id="trainDuration"></p>
+                </div>
+            </div>
+        </div>
+        <div class="row chart-container">
+            <div class="col-md-6">
+                <div class="chart" >
+                    <h2>运球锻炼得分</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_score"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>干扰块数</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_circle"></canvas>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="chart">
+                    <h2>完成动作数</h2>
+                    <div class="courtDiv">
+                        <canvas id="all_combine"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>        
+    <script>
+        const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
+        let userName = sessionStorage.getItem('userName');
+        document.getElementById('nickName').innerText=userName;
+                let shootingInfo=[
+        ];
+        let trainStartTime;
+        let trainEndTime;
+
+        const queryParams = new URLSearchParams(window.location.search);
+        const param1 = queryParams.get('uuid'); // 获取param1的值
+        console.log(param1);
+
+
+        function putText(canvas,text,font='100px Arial',fillStyle='black',strokeStyle='black'){
+            if (canvas.getContext) {
+            // 获取2D渲染上下文
+            const ctx = canvas.getContext('2d');
+            
+            // 设置文本对齐方式
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 设置文本样式
+            ctx.font = font;
+            ctx.fillStyle = fillStyle; // 文本颜色
+            ctx.strokeStyle = strokeStyle; // 轮廓颜色，用于文本描边
+            
+            // 获取canvas尺寸
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // 计算文本绘制的中心位置
+            const metrics = ctx.measureText(text);
+            const textWidth = metrics.width;
+            
+            // 设置文本的x和y坐标
+            const x = (width - textWidth) / 2 + textWidth / 2;
+            const y = height / 2;
+            
+            // 绘制文本（带描边）
+            ctx.strokeText(text, x, y);
+            ctx.fillText(text, x, y);
+        }
+        }
+
+        function formatDuration(timestamp1, timestamp2) {
+            var diff = Math.abs(timestamp2 - timestamp1); // 获取时间戳的差值，并取绝对值
+            var seconds = Math.floor(diff / 1000); // 转换为秒
+            var minutes = Math.floor(seconds / 60);
+            var hours = Math.floor(minutes / 60);
+
+            seconds %= 60;
+            minutes %= 60;
+
+            // 构建时间字符串
+            var timeString = "";
+            if (hours > 0) {
+                timeString += hours + "h";
+            }
+            if (minutes > 0) {
+                timeString += minutes + "m";
+            }
+            if (seconds > 0 || timeString === "") {
+                timeString += seconds + "s";
+            }
+
+            return timeString;
+        }
+
+        function getData(uuid){
+            let DribbleInfo
+            fetch("/getDribbleInfo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    uuid:uuid,
+                    userID:userID
+                }),
+                })
+                .then((response) => response.json())
+                .then((DribbleInfo_data) => {
+                    trainStartTime=DribbleInfo_data.trainStartTime;
+                    trainEndTime=DribbleInfo_data.trainEndTime;
+                    // 假设你有一个时间戳
+                    var date = new Date(parseInt(trainStartTime));
+                    console.log(date)
+                    var month = date.toLocaleString('en-US', { month: 'long' }); // 获取月份的英文全称
+                    var day = date.getDate(); // 获取日期
+                    var time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }); // 获取时间，使用12小时制
+                    var formattedDate = `${month} ${day} at ${time}`;
+                    document.getElementById('trainTime').innerHTML=formattedDate;
+                    var duration=formatDuration(trainStartTime,trainEndTime);
+                    document.getElementById('trainDuration').innerHTML=`<i class="bi bi-stopwatch"></i>${duration} <i class="bi bi-geo-alt"></i>未知`;
+                    console.log(formattedDate); // 输出 "May 4 at 10:53 PM"
+                    DribbleInfo=DribbleInfo_data.Dribbles;
+                    console.log("aaaaaaa",DribbleInfo);
+
+                    let all_score,all_circle,all_combine;
+                    all_score=DribbleInfo.all_score;
+                    all_circle=DribbleInfo.all_circle;
+                    all_combine=DribbleInfo.all_combine;
+
+                    var canvas_all = document.getElementById('all_score');
+                    var canvas_high = document.getElementById('all_circle');
+                    var canvas_low = document.getElementById('all_combine');
+
+                    putText(canvas_all,all_score)
+                    putText(canvas_high,all_circle)
+                    putText(canvas_low,all_combine)
+
+                })
+        }
+        
+        getData(param1);
+    </script>
+</body>
+</html>

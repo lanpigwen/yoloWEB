@@ -278,9 +278,10 @@
         let points=[];
         let trainStartTime;
         let trainEndTime;
-        let playMode='handsReact';
+        let playMode='react';
         const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
         let userName = sessionStorage.getItem('userName');
+        let all_score=0,all_circle=0,all_fast=0;
         console.log(userID)
 
         const startButton = document.getElementById('startButton');
@@ -381,6 +382,7 @@
             stopButtonFile.disabled = false;
             generateRandomProgressCircles(Graph_index);
             trainStartTime=Date.now();
+            all_score=0,all_circle=0,all_fast=0;
         })
         stopButtonFile.addEventListener('click',async () =>{
             clearInterval(dingshi); // 停止发送帧数据
@@ -398,9 +400,20 @@
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
                 formData.append('playMode',playMode);
+                ReactInfo={
+                    'all_score':all_score,
+                    'all_circle':all_circle,
+                    'all_fast':all_fast
+                }
+                formData.append('ReactInfo',JSON.stringify(ReactInfo))
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
+                }).then(response => {
+                    window.location.href='/afterReact'+'?uuid='+uniqueIdentifier;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
                 video.pause();
                 console.log(frameCount);
@@ -572,9 +585,20 @@
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
                 formData.append('playMode',playMode);
+                ReactInfo={
+                    'all_score':all_score,
+                    'all_circle':all_circle,
+                    'all_fast':all_fast
+                }
+                formData.append('ReactInfo',JSON.stringify(ReactInfo))
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
+                }).then(response => {
+                    window.location.href='/afterReact'+'?uuid='+uniqueIdentifier;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
                 console.log(points_and_time);
         });
@@ -604,9 +628,20 @@
                 formData.append('trainStartTime',trainStartTime);
                 formData.append('trainEndTime',trainEndTime);
                 formData.append('playMode',playMode);
+                ReactInfo={
+                    'all_score':all_score,
+                    'all_circle':all_circle,
+                    'all_fast':all_fast
+                }
+                formData.append('ReactInfo',JSON.stringify(ReactInfo))
                 await fetch('/upload', {
                     method: 'POST',
                     body: formData
+                }).then(response => {
+                    window.location.href='/afterReact'+'?uuid='+uniqueIdentifier;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                 });
                 //一定要清空！！！
                 audioChunks=[];
@@ -957,6 +992,12 @@
             let scoreSpan=document.getElementById('score');
             let newScore=parseInt(scoreSpan.innerHTML)+parseInt(score);
             scoreSpan.innerHTML=newScore;
+            all_score+=parseInt(score);
+            all_circle++;
+            if(g_percent>75){
+                all_fast++;
+            }
+
 
             let scoreRaise = document.createElement('svg');
             scoreRaise.classList.add('score-raise');
