@@ -8,9 +8,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(to right, #6a11cb, #2575fc); /* 蓝紫色到蓝色的渐变 */
-            font-family: Arial, sans-serif;
-            color: #fff; /* 调整文本颜色为白色以提高可读性 */
+            font-family: 'Arial', sans-serif;
+            color: #fffcfc;
+            background-image: url('./static/2index.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            position: relative; 
+            /* opacity: 1; */
+        }
+
+        html::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7); 
+            z-index: -10;
         }
         .card {
             background: rgba(255, 255, 255, 0.8); /* 卡片背景为半透明白色 */
