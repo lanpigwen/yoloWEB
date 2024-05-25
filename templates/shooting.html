@@ -410,6 +410,7 @@
         let ct1,ct2,ct3;
         let worker = new Worker('static/worker.js');
         let uniqueIdentifier;
+        let userID='123';
         let points=[];
 
         const startButton = document.getElementById('startButton');
@@ -544,6 +545,7 @@
             formData.append('imgHeight',height);
             formData.append('fps',fps);
             formData.append('uuid',uniqueIdentifier);
+            formData.append('userID',userID);
             trainEndTime=Date.now();
             formData.append('trainStartTime',trainStartTime);
             formData.append('trainEndTime',trainEndTime);
@@ -823,7 +825,8 @@
                 formData.append('isFromCamera',false);
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
-                formData.append('uuid',uniqueIdentifier)
+                formData.append('uuid',uniqueIdentifier);
+                formData.append('userID',userID);
                 formData.append('fps',fps);
                 trainEndTime=Date.now();
                 formData.append('trainStartTime',trainStartTime);
@@ -860,6 +863,7 @@
                 formData.append('imgWidth',width);
                 formData.append('imgHeight',height);
                 formData.append('uuid',uniqueIdentifier);
+                formData.append('userID',userID);
                 formData.append('fps',fps);
                 trainEndTime=Date.now();
                 formData.append('trainStartTime',trainStartTime);

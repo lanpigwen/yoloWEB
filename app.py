@@ -10,6 +10,10 @@ import os
 from PIL import Image
 from io import BytesIO
 from randomtest import generate_random_timestamps
+import redis
+import json
+# 连接Redis
+r = redis.Redis(host='localhost', port=6379, db=1)
 
 model = YOLO('pts/ball-rim-pose.engine')
 from collections import deque
@@ -67,31 +71,36 @@ def afterShooting():
 
 @app.route('/getShootingInfo',methods=['POST'])
 def getShootingInfo():
+    user=request.json.get('userID')
     uuid=request.json.get('uuid')
-    shootData=allShootingInfo.get(uuid,{
-                                        'trainStartTime':0,
-                                        'trainEndTime':0,
-                                        'Shoots':[]
-                                    })
+    key=f'Shoots:{user}:{uuid}'
+    shootData = json.loads(r.get(key)) or {
+        'trainStartTime': 0,
+        'trainEndTime': 0,
+        'Shoots': []
+    }
     data={
         'trainStartTime':shootData['trainStartTime'],
         'trainEndTime':shootData['trainEndTime'],
         'shootingInfo' : shootData['Shoots']
     }
-    # print(allShootingInfo)
-    # print('data',data)
+
     return jsonify(data)
 
 
 @app.route('/getAllShootingInfo',methods=['POST'])
 def getAllShootingInfo():
     userID=request.json.get('userID')
-    start = request.json.get('start')
-    end = request.json.get('end')
-    count=int(request.json.get('count'))
 
-    user_data = generate_random_timestamps(start, end,count)
-    return jsonify(user_data)
+    # 从Redis获取JSON字符串
+    keys_pattern = f'Shoots:{userID}*'
+    matching_keys = r.keys(keys_pattern)
+    userShootingData=[]
+    # 遍历匹配的键，并获取它们的值
+    for key in matching_keys:
+        value = r.get(key)
+        userShootingData.append(json.loads(value))
+    return jsonify(userShootingData)
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
@@ -167,11 +176,12 @@ def upload():
     height=int(request.form.get('imgHeight'))
     isFromCamera=request.form.get('isFromCamera')
     uuid=request.form.get('uuid')
+    user = request.form.get('userID')
     fps=int(request.form.get('fps'))
     shooting_info_data = request.form.getlist('shootingInfo')
     allShootInfo = [json.loads(item) for item in shooting_info_data] 
-    trainStartTime=request.form.get('trainStartTime')
-    trainEndTime=request.form.get('trainEndTime')
+    trainStartTime=int(request.form.get('trainStartTime'))
+    trainEndTime=int(request.form.get('trainEndTime'))
     allShootInfo={
         'trainStartTime':trainStartTime,
         'trainEndTime':trainEndTime,
@@ -183,10 +193,16 @@ def upload():
         os.remove('output.mp4')
     if uuid in allDataList:
         data=allDataList[uuid]
-        # print('uuid',uuid)
-        allShootingInfo[uuid]=allShootInfo
-        # print('添加后',allShootingInfo)
-        # Compile frames into a video
+
+        # 改为写入数据库的操作 userID,uuid
+        # 构造Redis的key
+        
+        key = f"Shoots:{user}:{uuid}"
+        # 将字典d序列化为JSON字符串
+        d_json = json.dumps(allShootInfo)
+        r.set(key, d_json)
+
+        
         out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
         for frame in data['all_frame']:
             out.write(frame)

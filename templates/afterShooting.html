@@ -195,6 +195,7 @@
 
     </script>
     <script>
+        let userID='123';
                 let shootingInfo=[
             // {nx:0.5,ny:0.5,score:true},
             // {nx:0.5,ny:0.5,score:true},
@@ -240,7 +241,8 @@
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ 
-                    uuid:uuid
+                    uuid:uuid,
+                    userID:userID
                 }),
                 })
                 .then((response) => response.json())

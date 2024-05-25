@@ -1,5 +1,8 @@
 import random
 from datetime import datetime, timedelta
+import uuid
+
+
 
 def generate_random_timestamps(start, end, count=10):
     # 将start和end转换为datetime对象
@@ -37,10 +40,39 @@ def generate_random_timestamps(start, end, count=10):
     return [random_user_data() for _ in range(count)]
 
 # # 示例使用
-# start = "2024-05-10"
-# end = "2024-05-24"
-# user_data = generate_random_timestamps(start, end)
+start = "2020-01-01"
+end = "2024-05-25"
+data = generate_random_timestamps(start, end,3000)
+user=['123','456','789']
 
+allData=[]
+# print(len(user_data))
 # # 打印结果
-# for user in user_data:
-#     print(user)
+for d in data:
+    random_user = random.choice(user)
+    uuid4 = str(uuid.uuid4())
+    tempTrain={'user':random_user,'uuid':uuid4,'ShootInfo':d}
+    allData.append(tempTrain)
+
+
+import json
+import redis
+
+# 连接到Redis，默认是localhost的6379端口
+r = redis.Redis(host='localhost', port=6379, db=1)
+
+for item in allData:
+    user = item['user']
+    uuid = item['uuid']
+    # 构造Redis的key
+    key = f"Shoots:{user}:{uuid}"
+    
+    # 将字典d序列化为JSON字符串
+    d_json = json.dumps(item['ShootInfo'])
+    
+    # 存储到Redis中
+    # 使用SET命令，key是"Shoots:user:uuid"，value是序列化后的JSON字符串
+    r.set(key, d_json)
+
+# 确认数据是否存储成功，可以打印出来或使用redis-cli进行检查
+# 例如，使用redis-cli获取数据：GET Shoots:123:some_uuid
