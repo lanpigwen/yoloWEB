@@ -192,9 +192,7 @@
 
 
     <script>
-        const queryParams = new URLSearchParams(window.location.search);
-        const userID = queryParams.get('userID');
-        var userData=[]
+
         //动态调整其svg大小
         function setSvgSize(data) {
             var containerWidth = document.getElementById('svgChart').clientWidth;
@@ -456,10 +454,27 @@
             });
         }
 
-        let count=1500;
-        const startDate = new Date(2022, 1, 10); // 2024年5月10日
-        const endDate = new Date(2024, 4, 24); // 2024年5月24日
-        userData = generateRandomTimestamps(startDate, endDate,count);
+        const queryParams = new URLSearchParams(window.location.search);
+        const userID = queryParams.get('userID');
+        var userData=[]
+
+        fetch("/getAllShootingInfo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    userID:'123',
+                    start : "2023-05-10",
+                    end : "2024-05-25",
+                    count:3500
+                }),
+                })
+                .then((response) => response.json())
+                .then((shooting_data) => {
+                    userData=shooting_data;
+                    updateWeekDisplay();
+                })
 
     </script>
     <script>

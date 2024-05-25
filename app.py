@@ -9,6 +9,7 @@ import subprocess as sp
 import os
 from PIL import Image
 from io import BytesIO
+from randomtest import generate_random_timestamps
 
 model = YOLO('pts/ball-rim-pose.engine')
 from collections import deque
@@ -82,6 +83,15 @@ def getShootingInfo():
     return jsonify(data)
 
 
+@app.route('/getAllShootingInfo',methods=['POST'])
+def getAllShootingInfo():
+    userID=request.json.get('userID')
+    start = request.json.get('start')
+    end = request.json.get('end')
+    count=int(request.json.get('count'))
+
+    user_data = generate_random_timestamps(start, end,count)
+    return jsonify(user_data)
 
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
