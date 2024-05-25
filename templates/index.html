@@ -279,18 +279,21 @@
     </script>
     <script>
         let userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
+        let userName = sessionStorage.getItem('userName');
+
         if(userID!=undefined){
             let button=document.getElementById('loginShow')
             button.innerText='退出登录';
             button.setAttribute('data-bs-target', '#logoutModal');
             let logoutBody=document.getElementById('logoutBody');
-            logoutBody.innerText=userID+'您确定要退出登录吗？';
+            logoutBody.innerText=userName+'，您确定要退出登录吗？';
         }
 
         function logout() {
 
             // 例如：清除本地存储、Cookie 或调用退出 API
-            sessionStorage.removeItem('userID'); // 假设使用 localStorage 存储登录令牌
+            sessionStorage.removeItem('userID'); 
+            sessionStorage.removeItem('userName');
 
             var logoutClose = document.getElementById('modalCloseOut')
             logoutClose.click();
@@ -375,7 +378,11 @@
                         // 处理成功登录，例如重定向到其他页面
                         // window.location.href = '/dashboard';
                         userID=username;
+                        userName=data.userName;
+                        sessionStorage.setItem('userName', data.userName);
                         sessionStorage.setItem('userID', userID);  // 使用 Session Storage
+                        let logoutBody=document.getElementById('logoutBody');
+                        logoutBody.innerText=userName+'，您确定要退出登录吗？';
                         // alert('登录成功：' + data.message);
                         showLoginAlert('登录成功：' + data.message,"alert alert-success"); 
                         var loginClose = document.getElementById('modalClose')

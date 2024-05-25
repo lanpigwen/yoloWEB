@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册新用户</title>
+    <!-- 引入 Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #6a11cb, #2575fc); /* 蓝紫色到蓝色的渐变 */
+            font-family: Arial, sans-serif;
+            color: #fff; /* 调整文本颜色为白色以提高可读性 */
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.8); /* 卡片背景为半透明白色 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s;
+        }
+        .card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(38, 143, 255, 0.6);
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .card-header {
+            background: transparent; /* 让卡头透明显示渐变背景 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>注册新用户</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="registrationForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">电子邮件</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密码</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirm-password" class="form-label">确认密码</label>
+                                <input type="password" class="form-control" id="confirm-password" required>
+                            </div>
+                            <!-- <div class="mb-3">
+                                <label for="avatar" class="form-label">头像上传</label>
+                                <input type="file" class="form-control" id="avatar" accept="image/*" onchange="previewImage();">
+                                <img id="avatarPreview" src="" alt="头像预览" class="img-thumbnail mt-2" style="display: none; width: 100px; height: 100px;">
+                            </div> -->
+                            <button type="submit" class="btn btn-primary" id="submitBtn">注册</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Bootstrap 5 JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // function previewImage() {
+        //     const file = document.getElementById('avatar').files[0];
+        //     const reader = new FileReader();
+        //     reader.onload = function(e) {
+        //         const preview = document.getElementById('avatarPreview');
+        //         preview.src = e.target.result;
+        //         preview.style.display = 'block';
+        //     };
+        //     if (file) {
+        //         reader.readAsDataURL(file);
+        //     }
+        // }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            
+                const form = document.getElementById('registrationForm');
+                form.addEventListener('submit',function(event){
+                    event.preventDefault();  // 阻止表单的默认提交行为
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    const email = document.getElementById('email').value;
+                    const formData = {
+                        username:username,
+                        password:password,
+                        email:email
+                    }
+
+                    fetch('/register', {  // 确保这是你的后端接收注册数据的 URL
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 处理响应数据
+                        if(data.success){
+                            alert(data.message);
+                            window.location.href = '/';
+                            sessionStorage.setItem('userName', username);
+                            sessionStorage.setItem('userID', email); 
+                        }
+                        else{
+                            alert(data.message);
+                        }
+                        
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('注册失败，请重试。');
+                    });
+                })
+
+            });
+
+
+
+    </script>
+</body>
+</html>

@@ -34,6 +34,7 @@ error_image_base64 = base64.b64encode(buffer).decode('utf-8')
 
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER']='./static/avator'
 @app.route('/')
 def index():
     # model.predict("test.png")
@@ -54,18 +55,60 @@ def login():
     val_pasw=r.get(key)
     response={
         'success':True,
-        'message':"登陆成功"
+        'message':"登陆成功",
+        'userName':"用户名"
     }
     if val_pasw is None:
         response['success']=False
         response['message']="账号不存在"
     else:
         val_pasw=val_pasw.decode('utf-8')
+        nickname_key=f'nickname:{username}'
+        userNickname=r.get(nickname_key)
+        if userNickname is not None:
+            response['userName']=userNickname.decode('utf-8')
         if val_pasw!=password:
             response['success']=False
             response['message']="密码错误"
 
     return jsonify(response)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # 提取表单数据
+        data = request.get_json()
+    
+    # 提取 username 和 password
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        print(username,password,email)
+        # 假设有头像上传
+        # avatar = request.files['avatar'] if 'avatar' in request.files else None
+        old_user=r.get(f'user:{email}')
+
+
+        # 这里添加你的保存逻辑，比如保存到数据库
+        # 例如：
+        # save_user(username, email, password, avatar)
+        response={
+            'success':True,
+            'message':"注册成功"
+        }
+        if old_user is None:
+            email_pasw_key=f'user:{email}'
+            email_nickname_key=f'nickname:{email}'
+            r.set(email_pasw_key,password)
+            r.set(email_nickname_key,username)
+        else:
+            response['success']=False
+            response['message']="该邮箱账号已经存在"
+
+        return jsonify(response)
+    else:
+        # 对于 GET 请求，渲染注册表单
+        return render_template('register.html')
 
 @app.route('/shootingPractice')
 def shootingPractice():

@@ -456,7 +456,8 @@
 
         const queryParams = new URLSearchParams(window.location.search);
         const userID = sessionStorage.getItem('userID');  // 从 Session Storage 获取
-        document.getElementById('nickName').innerText=userID;
+        let userName = sessionStorage.getItem('userName');
+        document.getElementById('nickName').innerText=userName;
         var userData=[]
 
         fetch("/getAllShootingInfo", {
