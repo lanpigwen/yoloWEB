@@ -237,6 +237,9 @@
 
         function filterData(startDate, endDate, userData) {
             // 将日期转换为时间戳
+            startDate.setHours(0,0,0);
+            endDate.setHours(23,59,59);
+            // console.log("filter",startDate,endDate);
             const startTimeStamp = startDate.getTime();
             const endTimeStamp = endDate.getTime();
 
@@ -401,7 +404,20 @@
                     thisMonth.push(temp);
                 }
                 for(let i=0;i<data2.length;i++){
-                    thisMonth[data2[i].day-1]=data2[i];
+                    //有bug 不知道为什么，在二月会出现31的数据，为了暂时解决这个bug 添加if:
+                    //有出现新的bug 二月最后一天都是0 但week时 又有数据
+                    //周数据与月数据对不上
+                    //每周最后一天都是错的
+                    //每月最后一天是错的
+                    //bug解决，将line 240 241   0h0m0s开始 23h59m59s结束
+                    //还剩一个小问题 偶尔 周数据中会有一个数据不对
+                    if(data2[i].day-1<thisMonth.length){
+                        thisMonth[data2[i].day-1]=data2[i];
+                        // console.log(data2[i].day-1,thisMonth[data2[i].day-1].day,"-->",data2[i].day,data2[i]);
+                    }
+                    // else{
+                    //     console.log("大于当前日期-->",data2[i].day,data2[i]);
+                    // }
                 }
                 console.log(thisMonth);
                 return thisMonth;
@@ -419,13 +435,8 @@
         }
 
         function updateTwoGraph(Date1,Date2,userData,mode=0){
-            let t1=Date.now();
             let result_data=extractData(Date1,Date2,userData,mode)
-            let t2=Date.now();
-            console.log("result_data=extractData(Date1,Date2,userData,mode)",t2-t1)
             let shootingInfo=extractData(Date1,Date2,userData,3);
-            let t3=Date.now();
-            console.log("shootingInfo=extractData(Date1,Date2,userData,3)",t3-t2)
 
             var canvas = document.getElementById('myCanvas');
             var ctx = canvas.getContext('2d');
@@ -438,13 +449,8 @@
                             lower_percent=0.3,
                             high_percent=0.5);
 
-            let t4=Date.now();
-            console.log("drawCourt",t4-t1);
-
-
             setSvgSize(result_data);
 
-            console.log("setSVG",Date.now()-t4);
             window.addEventListener('resize', function() {
                 setSvgSize(result_data);
             });
