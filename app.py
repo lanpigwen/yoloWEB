@@ -313,7 +313,8 @@ def process_frame():
             'b_ball':[],
             'keypoints':[],
             'player':[],
-            'rims':[]
+            'rims':[],
+            'score':False
         })
     data=allDataList[uuid]
 
@@ -335,7 +336,8 @@ def process_frame():
     'ball_state':data['ball_state'],
     'shooting_count':data['shooting_count'],
     'score_count':data['score_count'],
-    'rims':data['rims']
+    'rims':data['rims'],
+    'score':data['score']
     }
     response_data={
         'image_data': processed_data,  # 之前处理的图像数据

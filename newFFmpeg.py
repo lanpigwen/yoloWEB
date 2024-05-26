@@ -66,6 +66,7 @@ def yolo_process(model,data,newest_frame,jumpORnot,conf=0.2):
         newest_frame,data['preBallStack'],data['rim_t_ls'],data['b_ball'],data['keypoints'],data['player'],data['rims']=predict(model,newest_frame,data['preBallStack'],confidence=conf)
     
     score,newest_frame,data['wait_frame']=judge_shoot(data['preBallStack'],newest_frame,data['preBallStack'],data['rim_t_ls'],data['wait_frame'])
+    data['score']=score
     data['score_layer'],data['transparent_layer'],data['shooting_balls_line'],data['ball_cxy'],data['ball_thickness'],data['score_count'],data['shooting_count'],data['ball_state']=manage_shoot_score(newest_frame,data['transparent_layer'],data['score_layer'],data['preBallStack'],data['shooting_balls_line'],data['ball_cxy'],data['ball_thickness'],data['rim_t_ls'],score,data['score_count'],data['shooting_count'],data['ball_state'])
     newest_frame= cv2.addWeighted(newest_frame, 1, data['transparent_layer'], 1, 0)
     newest_frame= cv2.addWeighted(newest_frame, 1, data['score_layer'], 1, 0)

@@ -462,6 +462,7 @@
         let trainStartTime;
         let trainEndTime;
         let playMode='shooting';
+        let isScore=false;
 
         const locatePoints=document.getElementById("locatePoints");
         const EndlocatePoints=document.getElementById("EndlocatePoints");
@@ -628,7 +629,8 @@
             minutes=0;
             seconds=0;
             updateCountdownTimer=setTimeout(updateCountdown, 1000);
-            
+            makes=0;
+            attempts=0;
         })
 
         pauseButtonFile.addEventListener('click',()=>{
@@ -1051,7 +1053,31 @@
         return fittedPoints;
     }
 
-        function putText(canvas,text,xoffset=0,yoffset=0,font='200px Arial',fillStyle='black',strokeStyle='black',clear=true){
+        function FitAndJudge(x, y, degree,giveX) {
+        // 构建系数矩阵
+        const X = [];
+        for (let i = 0; i < x.length; i++) {
+            let row = [];
+            for (let j = 0; j <= degree; j++) {
+                row.push(Math.pow(x[i], j));
+            }
+            X.push(row);
+        }
+        // 计算系数
+        const Xt = numeric.transpose(X);
+        const XtX = numeric.dot(Xt, X);
+        const XtY = numeric.dot(Xt, y);
+        const coefficients = numeric.solve(XtX, XtY);
+
+        let yFit = 0;
+        for (let j = 0; j <= degree; j++) {
+            
+            yFit += coefficients[j] * Math.pow(giveX, j);
+        }
+        return yFit;
+    }
+
+        function putText(canvas,text,xoffset=0,yoffset=0,font='200px Arial',fillStyle='red',strokeStyle='red',clear=true){
             if (canvas.getContext) {
             // 获取2D渲染上下文
             const ctx = canvas.getContext('2d');
@@ -1191,6 +1217,45 @@
             BalltempContext.stroke();
         }
     
+        function JudgeShoot(judge_balls,pre_n_rim){
+
+            let rim=pre_n_rim[pre_n_rim.length-1];
+            let degree=3;
+            let allSample=0.0;
+            let inSample=0.0;
+            let newjudge_balls=[];
+            for(let i=0;i<judge_balls.length;i++){
+                if(judge_balls[i].right_bottom.y>rim.left_top.y){
+                    newjudge_balls.push(judge_balls[i]);
+                }
+            }
+            judge_balls=newjudge_balls;
+
+            let score=false
+            for(let givey=rim.left_top.y;givey<rim.right_bottom.y;givey+=1){
+                allSample++;
+                let fitX=FitAndJudge(judge_balls.map(point => 0.5*(point.left_top.y+point.right_bottom.y)), judge_balls.map(point => 0.5*(point.left_top.x+point.right_bottom.x)),degree,givey);
+                // console.log(fitX,rim.left_top.x,rim.right_bottom.x);
+                // resultContext.fillStyle = 'red'; // 点的颜色
+                // resultContext.beginPath(); // 开始新的路径
+                // // 绘制一个半径为1的圆点
+                // resultContext.arc(fitX, givey, 20, 0, 2 * Math.PI);
+                // resultContext.fill(); // 填充路径
+                if(fitX>rim.left_top.x && fitX<rim.right_bottom.x){
+                    inSample++;
+                    score=true;
+                    // resultContext.fillStyle = 'green'; // 点的颜色
+                    // resultContext.beginPath(); // 开始新的路径
+                    // // 绘制一个半径为1的圆点
+                    // resultContext.arc(fitX, givey, 20, 0, 2 * Math.PI);
+                    // resultContext.fill(); // 填充路径
+                    return score
+
+                }
+            }
+            return score;
+        }
+
       // 发送数据到服务器
         function sendData(imageData,imageWidth,imageHeight,flipFrame) {
         if(jump){
@@ -1223,6 +1288,10 @@
                 imgElement.src = "data:image/jpeg;base64," + data.image_data;
 
                 let extra_data=data.extra_data;
+                // isScore=data.extra_data.score;
+                // if(isScore){
+                //     makes++;
+                // }
                 if(extra_data.player.length>=1){
                     player=extra_data.player[0];
                 }
@@ -1265,7 +1334,7 @@
                     cy=(bp1.y+bp2.y)/2.0;
                     ball_r = (bp2.x-bp1.x)/2.0;
                     pre_n_ball.push({left_top:bp1,right_bottom:bp2,r:0.5*Math.abs(bp2.y-bp1.y)});
-                    if(pre_n_ball.length>15){
+                    if(pre_n_ball.length>7){
                         pre_n_ball.shift();
                     }
                     ball_state=manageBallState(pre_n_ball,pre_n_rim,pre_ball_state,keypoints);
@@ -1291,6 +1360,7 @@
                         }
                         
                         if(shooting_balls.length==1){
+                            attempts++;
                             ball_trace_r=ball_r;
                             // if(keypoints){
                             //     console.log("player",keypoints)
@@ -1311,7 +1381,7 @@
 
                                 console.log("stand",playerStand);
                                 let windowStand=canvas_n2canvas_XY(playerStand.x,playerStand.y);
-                                drawPoint(windowStand,'red',resultContext,20);
+                                // drawPoint(windowStand,'red',resultContext,20);
                                 // canvas_n2right_court_XY(playerStand.x,playerStand.y);
                                 // console.log(player);
                             }
@@ -1326,22 +1396,22 @@
                             let rim=pre_n_rim[pre_n_rim.length-1];
                             rimx=(rim.left_top.x+rim.right_bottom.x)*0.5
                             //排除下落到篮筐后弹起的球
-                            let newshooting_balls=[shooting_balls[0]]
-                            let closeTo=false;
-                            for(let i=0;i<shooting_balls.length-1;i++){
-                                if(shooting_balls[i+1].y>shooting_balls[i].y){
-                                    closeTo=true;
-                                }
-                                if(closeTo){
-                                    if(shooting_balls[i+1].y>shooting_balls[i].y && shooting_balls[i+1].y<rim.left_top.y){
-                                        newshooting_balls.push(shooting_balls[i+1])
-                                    }
-                                }
-                                else{
-                                    newshooting_balls.push(shooting_balls[i+1])
-                                }
-                            }
-                            shooting_balls=newshooting_balls;
+                            // let newshooting_balls=[shooting_balls[0]]
+                            // let closeTo=false;
+                            // for(let i=0;i<shooting_balls.length-1;i++){
+                            //     if(shooting_balls[i+1].y>shooting_balls[i].y){
+                            //         closeTo=true;
+                            //     }
+                            //     if(closeTo){
+                            //         if(shooting_balls[i+1].y>shooting_balls[i].y && shooting_balls[i+1].y<rim.left_top.y){
+                            //             newshooting_balls.push(shooting_balls[i+1])
+                            //         }
+                            //     }
+                            //     else{
+                            //         newshooting_balls.push(shooting_balls[i+1])
+                            //     }
+                            // }
+                            // shooting_balls=newshooting_balls;
 
                             // let points = shooting_balls;
                             const degree = 3; // 多项式次数
@@ -1390,7 +1460,15 @@
                             resultContext.globalAlpha = 1; // 恢复默认的透明度为 1
                         }
                     }
-                    //忘记score会直接加了
+                    //忘记score会直接加了                    
+                    if(ball_state=='Judging'){
+                        isScore=JudgeShoot(pre_n_ball,pre_n_rim);
+                        if(isScore){
+                            ball_state='normal'
+                            pre_ball_state=='Judging'
+                            makes++;
+                        }
+                    }
                     if(ball_state!='Judging' && pre_ball_state=='Judging'){
                         let makesSpan=document.getElementById('makes');
                         let attemptsSpan=document.getElementById('attempts');
@@ -1407,26 +1485,18 @@
                             },200)
                         }, 50);
 
-                        canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=extra_data.score_count);
-                        makesSpan.innerHTML=extra_data.score_count;
-                        attemptsSpan.innerHTML=extra_data.shooting_count;
-                        
-                        
+                        canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=makes);
+                        makesSpan.innerHTML=makes;
+                        attemptsSpan.innerHTML=attempts;
                     }
                 
                 }
-
-
                 pre_ball_state=ball_state;
 
             }
-            
-
-            // console.log(player);
             })
           .catch((error) => {
             console.error("Error sending data to server: ", error);
-            // alert("An error occurred while processing the frame. Please try again later.");
           });
       }
 
