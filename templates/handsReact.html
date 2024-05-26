@@ -716,13 +716,15 @@
                     }
                 }
             }
-            tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-            
-                            // 在这里应用水平翻转
-    // tempContext.save(); // 保存当前绘图状态
-    // tempContext.scale(-1, 1); // 水平翻转
-    // tempContext.drawImage(video, -tempCanvas.width, 0, tempCanvas.width, tempCanvas.height); // 绘制翻转后的视频帧
-    // tempContext.restore(); // 恢复绘图状态
+            //水平翻转
+            document.getElementById('videoElement').style.transform='scaleX(-1)'
+            tempContext.save(); // 保存当前绘图状态
+            tempContext.scale(-1, 1); // 水平翻转
+            tempContext.drawImage(video, -tempCanvas.width, 0, tempCanvas.width, tempCanvas.height); // 绘制翻转后的视频帧
+            tempContext.restore(); // 恢复绘图状态
+
+            // //不水平翻转
+            // tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
             let data=tempCanvas.toDataURL("image/jpeg");
             return {
