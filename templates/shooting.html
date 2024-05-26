@@ -1360,7 +1360,7 @@
                         }
                         
                         if(shooting_balls.length==1){
-                            attempts++;
+                            // attempts++;
                             ball_trace_r=ball_r;
                             // if(keypoints){
                             //     console.log("player",keypoints)
@@ -1461,34 +1461,34 @@
                         }
                     }
                     //忘记score会直接加了                    
-                    if(ball_state=='Judging'){
-                        isScore=JudgeShoot(pre_n_ball,pre_n_rim);
-                        if(isScore){
-                            ball_state='normal'
-                            pre_ball_state=='Judging'
-                            makes++;
-                        }
-                    }
-                    if(ball_state!='Judging' && pre_ball_state=='Judging'){
-                        let makesSpan=document.getElementById('makes');
-                        let attemptsSpan=document.getElementById('attempts');
-                        setTimeout(() => {
-                            makesSpan.style.transition='transform 0.2s ease-out';
-                            makesSpan.style.transform = 'scale(1.5)';
-                            setTimeout(()=>{
-                                makesSpan.style.transform = 'scale(1)'; 
-                            },200)
-                            attemptsSpan.style.transition='transform 0.2s ease-out';
-                            attemptsSpan.style.transform = 'scale(1.5)';
-                            setTimeout(()=>{
-                                attemptsSpan.style.transform = 'scale(1)'; 
-                            },200)
-                        }, 50);
+                    // if(ball_state=='Judging'){
+                    //     isScore=JudgeShoot(pre_n_ball,pre_n_rim);
+                    //     if(isScore){
+                    //         ball_state='normal'
+                    //         pre_ball_state=='Judging'
+                    //         makes++;
+                    //     }
+                    // }
+                    // if(ball_state!='Judging' && pre_ball_state=='Judging'){
+                    //     let makesSpan=document.getElementById('makes');
+                    //     let attemptsSpan=document.getElementById('attempts');
+                    //     setTimeout(() => {
+                    //         makesSpan.style.transition='transform 0.2s ease-out';
+                    //         makesSpan.style.transform = 'scale(1.5)';
+                    //         setTimeout(()=>{
+                    //             makesSpan.style.transform = 'scale(1)'; 
+                    //         },200)
+                    //         attemptsSpan.style.transition='transform 0.2s ease-out';
+                    //         attemptsSpan.style.transform = 'scale(1.5)';
+                    //         setTimeout(()=>{
+                    //             attemptsSpan.style.transform = 'scale(1)'; 
+                    //         },200)
+                    //     }, 50);
 
-                        canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=makes);
-                        makesSpan.innerHTML=makes;
-                        attemptsSpan.innerHTML=attempts;
-                    }
+                    //     canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=makes);
+                    //     makesSpan.innerHTML=makes;
+                    //     attemptsSpan.innerHTML=attempts;
+                    // }
                 
                 }
                 pre_ball_state=ball_state;
@@ -1538,6 +1538,53 @@
             imgElement.style.zIndex="5";
 
         })
+        document.addEventListener("keydown", function(event) {
+        // 如果按下的是左键
+        if (event.keyCode === 37) {
+            attempts++;
+            let makesSpan=document.getElementById('makes');
+            let attemptsSpan=document.getElementById('attempts');
+            setTimeout(() => {
+                makesSpan.style.transition='transform 0.2s ease-out';
+                makesSpan.style.transform = 'scale(1.5)';
+                setTimeout(()=>{
+                    makesSpan.style.transform = 'scale(1)'; 
+                },200)
+                attemptsSpan.style.transition='transform 0.2s ease-out';
+                attemptsSpan.style.transform = 'scale(1.5)';
+                setTimeout(()=>{
+                    attemptsSpan.style.transform = 'scale(1)'; 
+                },200)
+            }, 50);
+
+            canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=makes);
+            makesSpan.innerHTML=makes;
+            attemptsSpan.innerHTML=attempts;
+        }
+        //右键
+        if (event.keyCode === 39) {
+            makes++;
+            attempts++;
+            let makesSpan=document.getElementById('makes');
+            let attemptsSpan=document.getElementById('attempts');
+            setTimeout(() => {
+                makesSpan.style.transition='transform 0.2s ease-out';
+                makesSpan.style.transform = 'scale(1.5)';
+                setTimeout(()=>{
+                    makesSpan.style.transform = 'scale(1)'; 
+                },200)
+                attemptsSpan.style.transition='transform 0.2s ease-out';
+                attemptsSpan.style.transform = 'scale(1.5)';
+                setTimeout(()=>{
+                    attemptsSpan.style.transform = 'scale(1)'; 
+                },200)
+            }, 50);
+
+            canvas_n2right_court_XY(playerStand.x,playerStand.y,makesSpan.innerHTML!=makes);
+            makesSpan.innerHTML=makes;
+            attemptsSpan.innerHTML=attempts;
+        }
+    })
     </script>
     <script>
 
