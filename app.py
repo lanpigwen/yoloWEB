@@ -9,9 +9,9 @@ import subprocess as sp
 import os
 from PIL import Image
 from io import BytesIO
-from randomtest import generate_random_timestamps
 import redis
 import json
+import torch
 # 连接Redis
 r = redis.Redis(host='localhost', port=6379, db=1)
 
@@ -34,7 +34,6 @@ error_image_base64 = base64.b64encode(buffer).decode('utf-8')
 
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER']='./static/avator'
 @app.route('/')
 def index():
     # model.predict("test.png")
@@ -313,7 +312,8 @@ def process_frame():
             'all_frame':[],
             'b_ball':[],
             'keypoints':[],
-            'player':[]
+            'player':[],
+            'rims':[]
         })
     data=allDataList[uuid]
 
@@ -334,7 +334,8 @@ def process_frame():
     'player':data['player'],
     'ball_state':data['ball_state'],
     'shooting_count':data['shooting_count'],
-    'score_count':data['score_count']
+    'score_count':data['score_count'],
+    'rims':data['rims']
     }
     response_data={
         'image_data': processed_data,  # 之前处理的图像数据

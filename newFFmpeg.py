@@ -48,11 +48,22 @@ def predict(model,frame,preBallStack,confidence=0.2):
             person.append(p)
     else:
         person=[]
-    return frame,preBallStack,rim_t_ls,ball,keypoints,person
+    if len(rim_t_ls)>=1:
+        rims=[]
+        for i in rim_t_ls:
+            p=i.tolist()
+            p[0]=float(p[0]/frame.shape[1])
+            p[1]=float(p[1]/frame.shape[0])
+            p[2]=float(p[2]/frame.shape[1])
+            p[3]=float(p[3]/frame.shape[0])
+            rims.append(p)
+    else:
+        rims=[]
+    return frame,preBallStack,rim_t_ls,ball,keypoints,person,rims
 
 def yolo_process(model,data,newest_frame,jumpORnot,conf=0.2):
     if jumpORnot:
-        newest_frame,data['preBallStack'],data['rim_t_ls'],data['b_ball'],data['keypoints'],data['player']=predict(model,newest_frame,data['preBallStack'],confidence=conf)
+        newest_frame,data['preBallStack'],data['rim_t_ls'],data['b_ball'],data['keypoints'],data['player'],data['rims']=predict(model,newest_frame,data['preBallStack'],confidence=conf)
     
     score,newest_frame,data['wait_frame']=judge_shoot(data['preBallStack'],newest_frame,data['preBallStack'],data['rim_t_ls'],data['wait_frame'])
     data['score_layer'],data['transparent_layer'],data['shooting_balls_line'],data['ball_cxy'],data['ball_thickness'],data['score_count'],data['shooting_count'],data['ball_state']=manage_shoot_score(newest_frame,data['transparent_layer'],data['score_layer'],data['preBallStack'],data['shooting_balls_line'],data['ball_cxy'],data['ball_thickness'],data['rim_t_ls'],score,data['score_count'],data['shooting_count'],data['ball_state'])

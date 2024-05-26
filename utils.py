@@ -493,7 +493,7 @@ def manage_ball_state(preBallStack,rim,ball_state):
     if len(balls_in_pre)<1 or len(rims)<1:
         return ball_state
     low_ball,high_ball=balls_in_pre[-1],balls_in_pre[0]
-    condition=high_ball[1]<rims[0][3] and low_ball[3]>rims[0][3] and b2b_distance(low_ball,rims[0])<4*abs(low_ball[3]-low_ball[1])
+    # condition=high_ball[1]<rims[0][3] and low_ball[3]>rims[0][3] and b2b_distance(low_ball,rims[0])<4*abs(low_ball[3]-low_ball[1])
     condition=low_ball[3]>rims[0][3] and b2b_distance(low_ball,rims[0])>4*abs(low_ball[3]-low_ball[1])
     if condition:
         ball_state='normal'
