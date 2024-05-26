@@ -1298,7 +1298,7 @@
             }
             if(video.style.zIndex<imgElement.style.zIndex || video.style.zIndex<resultCanvas.style.zIndex){
                 imgElement.src = "data:image/jpeg;base64," + data.image_data;
-
+            }
                 let extra_data=data.extra_data;
                 // isScore=data.extra_data.score;
                 // if(isScore){
@@ -1505,7 +1505,7 @@
                 }
                 pre_ball_state=ball_state;
 
-            }
+            
             })
           .catch((error) => {
             console.error("Error sending data to server: ", error);
@@ -1539,15 +1539,18 @@
         
         realTimeModeButton.addEventListener('click',() =>{
             video.style.zIndex="5";
+            video.style.opacity=0;
             resultCanvas.style.zIndex="7";
-            BalltempCanvas.style.zIndex="8";
             imgElement.style.zIndex="6";
+            imgElement.style.opacity=1;
         })
+
         postProcessingModeButton.addEventListener('click',() =>{
             video.style.zIndex="6";
+            video.style.opacity=1;
             resultCanvas.style.zIndex="7";
-            BalltempCanvas.style.zIndex="8";
             imgElement.style.zIndex="5";
+            imgElement.style.opacity=0;
 
         })
         document.addEventListener("keydown", function(event) {

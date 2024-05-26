@@ -48,7 +48,7 @@
             height: 100%;
             z-index: 6;
             object-fit: contain;
-            opacity: 0.5;
+            /* opacity: 0.5; */
         }
 
         #resultImg{
@@ -996,7 +996,7 @@
             }
             if(video.style.zIndex<imgElement.style.zIndex || video.style.zIndex<resultCanvas.style.zIndex){
                 imgElement.src = "data:image/jpeg;base64," + data.image_data;
-
+            }
                 let extra_data=data.extra_data;
                 if(extra_data.player.length>=1){
                     player=extra_data.player[0];
@@ -1034,7 +1034,7 @@
                     knee=canvas_n2window_XY(keypoints[13][0],keypoints[13][1]);
                 }
 
-            }
+            
 
             // console.log(player);
             })
@@ -1070,14 +1070,18 @@
         
         realTimeModeButton.addEventListener('click',() =>{
             video.style.zIndex="5";
+            video.style.opacity=0;
             resultCanvas.style.zIndex="7";
             imgElement.style.zIndex="6";
+            imgElement.style.opacity=1;
         })
 
         postProcessingModeButton.addEventListener('click',() =>{
             video.style.zIndex="6";
+            video.style.opacity=1;
             resultCanvas.style.zIndex="7";
             imgElement.style.zIndex="5";
+            imgElement.style.opacity=0;
 
         })
     </script>
