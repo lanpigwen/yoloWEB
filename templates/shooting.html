@@ -1377,7 +1377,8 @@
                             let newpoints=[]
                             for(let i=0;i<points.length-1;i++){
                                 newpoints.push(points[i]);
-                                if(points[i].y<points[i+1].y && points[i+1].y>rim.left_top.y){
+                                // 0.3*(rim.right_bottom.y-rim.left_top.y) 表示线路只到篮筐上距离这么多
+                                if(points[i].y<points[i+1].y && points[i+1].y>rim.left_top.y-0.3*(rim.right_bottom.y-rim.left_top.y)){
                                     break;
                                 }
                             }
