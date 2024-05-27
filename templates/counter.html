@@ -697,6 +697,7 @@
         });
 
         startButton.addEventListener('click', async () => {
+            trainStartTime=Date.now();
             resetCanvasSize=1;
             videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
             audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
