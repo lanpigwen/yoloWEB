@@ -934,6 +934,9 @@
                         updateScore(); 
                     }
                     all_dribble_count++;
+                    if(all_dribble_count>60){
+                        stopButton.click();
+                    }
 
 
 
@@ -1032,7 +1035,7 @@
                     if(hands.length>5){
                         hands.shift();
                     }
-                    knee=canvas_n2window_XY(keypoints[13][0],keypoints[13][1]);
+                    knee=canvas_n2window_XY(keypoints[11][0],keypoints[11][1]);
                 }
 
             

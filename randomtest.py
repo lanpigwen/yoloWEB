@@ -59,7 +59,7 @@ import json
 import redis
 
 # # 连接到Redis，默认是localhost的6379端口
-r = redis.Redis(host='localhost', port=6379, db=1)
+# r = redis.Redis(host='localhost', port=6379, db=1)
 
 # for item in allData:
 #     user = item['user']
@@ -81,4 +81,4 @@ r = redis.Redis(host='localhost', port=6379, db=1)
 #     key=f'user:{u}'
 #     r.set(key,u) 
 
-print(r.get('user:456')==b'456')
+# print(r.get('user:456')==b'456')
