@@ -396,7 +396,7 @@
             userShootData.forEach(user => {
                 // 将时间戳转换为Date对象
                 const date = new Date(user.trainStartTime);
-                // 获取日期的表示形式，例如 "2024-05-10"
+                // 获取日期的表示形式， "2024-05-10"
                 const dateString = date.toISOString().slice(0, 10);
                 
                 // 累加hits和misses
@@ -504,6 +504,7 @@
 
         function extractData(startDate, endDate, userShootData,mode=0){
             let data1=filterData(startDate, endDate, userShootData);
+            console.log(data1);
             let data2=DataFormat2Line(data1);
             if(mode==0){
                 //week
@@ -720,6 +721,7 @@
                 .then((response) => response.json())
                 .then((shooting_data) => {
                     userShootData=shooting_data;
+                    console.log("后端给的userShootData",userShootData);
                     //会超额Failed to execute 'setItem' on 'Storage': Setting the value of 'userShootData' exceeded the quota.
                     try{
                         sessionStorage.setItem('userShootData',JSON.stringify(userShootData));

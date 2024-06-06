@@ -150,7 +150,6 @@ def afterDribble():
 def afterReact():
     return render_template('afterReact.html')
 
-
 @app.route('/getShootingInfo',methods=['POST'])
 def getShootingInfo():
     user=request.json.get('userID')
@@ -276,7 +275,6 @@ def getAllReactInfo():
         userReactsData.append(json.loads(value))
     return jsonify(userReactsData)
 
-
 @app.route('/process_frame', methods=['POST'])
 def process_frame():
     # 从请求中获取图像数据
@@ -345,9 +343,6 @@ def process_frame():
     }
     # 返回处理后的图像数据
     return jsonify(response_data)
-
-
-
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -447,8 +442,6 @@ def upload():
         print(uuid)
         return 'No UUID', 400
     
-
-
 @app.route('/upload_mp4', methods=['POST'])
 def uploadmp4():
     if 'mp4File' not in request.files:
