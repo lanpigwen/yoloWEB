@@ -1,0 +1,11 @@
+flask
+numpy
+opencv-python-headless
+pillow
+redis
+torch
+ultralytics
+ffmpeg-python
+scipy
+joblib
+colorama

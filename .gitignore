@@ -2,3 +2,22 @@
 *.avi
 yolov8m-pose.engine
 yolov8m-pose.onnx
+
+# Model files (exclude large weight files)
+pts/*.engine
+pts/*.onnx
+pts/*.pt
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Temporary / output files
+output.mp4
+temp*.mp4
+audiotemp.mp4
+temp.wav
+*.log
+
+# Saved images
+static/saved_image.jpg
