@@ -5,8 +5,12 @@ import cv2
 from newFFmpeg import predict,YOLO,yolo_process,judge_shoot,manage_shoot_score
 import ffmpeg
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import subprocess as sp
 import os
+import tempfile
+from fractions import Fraction
+import uuid
 from PIL import Image
 from io import BytesIO
 import redis
@@ -413,30 +417,32 @@ def upload():
             d_json=json.dumps(ReactInfo)
             r.set(key, d_json)
         
-        out = cv2.VideoWriter('temp.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
-        for frame in data['all_frame']:
-            out.write(frame)
-        out.release()
-        # print("帧数为：",len(data['all_frame']))
+        # Use temporary file to avoid collisions
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+            temp_video_path = tmp.name
+            out = cv2.VideoWriter(temp_video_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+            for frame in data['all_frame']:
+                out.write(frame)
+            out.release()
 
-        if isFromCamera=='true' and 'audio' in request.files:
-            # print("aaaaa")
-            audio_file = request.files['audio']
-            audio_file.save('temp.wav')
-            sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'temp.wav', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4'])
-            os.remove('temp.wav')
-        elif isFromCamera=='false':
-            sp.run(['ffmpeg', '-i', 'temp.mp4', '-i', 'audiotemp.mp4', '-map', '0:v','-map', '1:a','-c:v', 'copy', '-c:a', 'copy', 'output.mp4'])
-            # os.remove('audiotemp.mp4')
-        else:
-            return 'No file part', 400
-        del allDataList[uuid]
-        
-        # os.remove('temp.mp4')
-        # return send_file('output.mp4', as_attachment=True)
-        # return redirect(url_for('afterShooting'))
-        # print(allShootInfo)
-        return 'ok', 200
+        try:
+            if isFromCamera=='true' and 'audio' in request.files:
+                audio_file = request.files['audio']
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmpw:
+                    temp_wav = tmpw.name
+                    audio_file.save(temp_wav)
+                sp.run(['ffmpeg', '-i', temp_video_path, '-i', temp_wav, '-c:v', 'copy', '-c:a', 'aac', 'output.mp4'], check=True)
+                os.remove(temp_wav)
+            elif isFromCamera=='false':
+                # ensure audiotemp exists
+                audio_tmp = 'audiotemp.mp4'
+                sp.run(['ffmpeg', '-i', temp_video_path, '-i', audio_tmp, '-map', '0:v','-map', '1:a','-c:v', 'copy', '-c:a', 'copy', 'output.mp4'], check=True)
+            else:
+                return 'No file part', 400
+        finally:
+            # cleanup temp video
+            if os.path.exists(temp_video_path):
+                os.remove(temp_video_path)
 
     else:
         print(uuid)
@@ -446,9 +452,11 @@ def upload():
 def uploadmp4():
     if 'mp4File' not in request.files:
         return 'No file part', 400
-    audio_file = request.files['mp4File']
-    audio_file.save('audiotemp.mp4')
-    return 'File uploaded successfully.', 200  # 返回成功响应
+        # Save uploaded mp4 to a tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+            tmp_path = tmp.name
+            audio_file.save(tmp_path)
+        return 'File uploaded successfully.', 200  # 返回成功响应
 
 @app.route('/save_image', methods=['POST'])
 def save_image():
@@ -508,5 +516,10 @@ def calculate_perspective_matrix():
         print(e)
         return jsonify({'error': str(e)}), 500
 
+def create_app():
+    return app
+
 if __name__ == '__main__':
-     app.run(debug=True)  # 在调试模式下运行 Flask 应用
+    # Development only: run with flask run or a WSGI server in production
+    app.run()
+

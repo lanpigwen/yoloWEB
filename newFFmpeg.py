@@ -273,7 +273,11 @@ def mainThreads(video_file,model,out_video_file,show_height,out_height,bitrate_k
         # 打印摄像头尺寸
         probe = ffmpeg.probe(video_file)
         video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
-        fps = eval(video_stream['r_frame_rate'])
+        try:
+            # parse ratios like "30000/1001" safely
+            fps = float(Fraction(video_stream['r_frame_rate']))
+        except Exception:
+            fps = 30.0
         width = video_stream['width']
         height = video_stream['height']
         
